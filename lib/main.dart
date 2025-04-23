@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -7,12 +9,24 @@ import 'package:testfront/features/auth/register_screen.dart';
 import 'package:testfront/features/home/home_screen.dart';
 
 void main() {
+  // Active le contournement SSL contrôlé
+  HttpOverrides.global = DevHttpOverrides();
   // Configuration initiale
   WidgetsFlutterBinding.ensureInitialized();
   
   // Bloquer l'orientation en portrait
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
     .then((_) => runApp(const MyApp()));
+}
+class DevHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback = (cert, host, port) {
+        // Autorise uniquement le certificat de dev pour ces hôtes
+        return host == "localhost" || host == "10.0.2.2";
+      };
+  }
 }
 
 class MyApp extends StatelessWidget {
