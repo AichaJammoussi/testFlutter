@@ -6,7 +6,7 @@ class ApiConfig {
     if (kIsWeb) {
       return 'https://localhost:7261'; // Web
     } else {
-      return 'https://10.0.2.2:7261'; // Mobile (émulateur)
+      return 'https://b4a1-102-159-41-181.ngrok-free.app'; // Mobile (émulateur)
     }
   }
 

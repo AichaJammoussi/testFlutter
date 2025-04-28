@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:testfront/core/models/auth_storage.dart';
 import 'package:testfront/features/auth/login_screen.dart';
 import 'package:testfront/features/auth/register_screen.dart';
+import 'package:testfront/features/auth/conditions_screen.dart';
 import 'package:testfront/features/home/home_screen.dart';
 
 void main() {
@@ -13,11 +14,13 @@ void main() {
   HttpOverrides.global = DevHttpOverrides();
   // Configuration initiale
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Bloquer l'orientation en portrait
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
-    .then((_) => runApp(const MyApp()));
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]).then((_) => runApp(const MyApp()));
 }
+
 class DevHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -40,9 +43,10 @@ class MyApp extends StatelessWidget {
       theme: _buildThemeData(),
       home: const AuthWrapper(),
       routes: {
-        '/login': (context) =>   LoginScreen(),
+        '/login': (context) => LoginScreen(),
         '/register': (context) => const RegisterScreen(),
         '/home': (context) => const HomeScreen(),
+        '/conditions': (context) => const ConditionsScreen(),
       },
     );
   }
@@ -51,14 +55,9 @@ class MyApp extends StatelessWidget {
     return ThemeData(
       primarySwatch: Colors.blue,
       visualDensity: VisualDensity.adaptivePlatformDensity,
-      appBarTheme: const AppBarTheme(
-        elevation: 1,
-        centerTitle: true,
-      ),
+      appBarTheme: const AppBarTheme(elevation: 1, centerTitle: true),
       inputDecorationTheme: InputDecorationTheme(
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
@@ -101,6 +100,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Widget build(BuildContext context) {
     return _isLoading
         ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-        : _isLoggedIn ? const HomeScreen() :  LoginScreen();
+        : _isLoggedIn
+        ? const HomeScreen()
+        : LoginScreen();
   }
 }

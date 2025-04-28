@@ -1,9 +1,11 @@
-import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:http/http.dart' as client;
 import 'package:testfront/core/config/api_config.dart';
-import 'package:testfront/core/models/login_response.dart';
+import 'package:testfront/core/models/Auth_response.dart';
 import 'package:testfront/core/models/register_data.dart';
 
 class AuthService {
@@ -11,231 +13,153 @@ class AuthService {
 
   AuthService({http.Client? client}) : client = client ?? http.Client();
 
-  Future<AuthResponse> login({
+   Future<AuthResponse> login({
     required String email,
     required String password,
   }) async {
+    final uri = Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}');
+    
+    if (kDebugMode) {
+      print('🔄 Tentative de connexion vers $uri');
+      print('📩 Données envoyées: {email: $email, password: ********}');
+    }
+
     try {
       final response = await client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.login}'),
+        uri,
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
 
-      return _handleAuthResponse(response);
+      if (kDebugMode) {
+        print('✅ Statut HTTP: ${response.statusCode}');
+        print('📦 Réponse brute: ${response.body}');
+      }
+
+      final jsonResponse = jsonDecode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 400) {
+        return AuthResponse.fromJson(jsonResponse);
+      } else {
+        return AuthResponse(
+          success: false,
+          message: 'Erreur serveur (${response.statusCode})',
+          errors: jsonResponse['errors'] != null
+              ? Map<String, String>.from(jsonResponse['errors'])
+              : null,
+        );
+      }
     } catch (e) {
-      if (kDebugMode) print('Login Error: $e');
-      rethrow;
+      if (kDebugMode) {
+        print('❌ Erreur lors de la connexion: $e');
+      }
+      
+      // Gestion plus fine des erreurs réseau
+      if (e is http.ClientException) {
+        return AuthResponse(
+          success: false,
+          message: 'Erreur de connexion au serveur',
+          errors: {'network': 'Vérifiez votre connexion internet'},
+        );
+      } else if (e is FormatException) {
+        return AuthResponse(
+          success: false,
+          message: 'Réponse serveur invalide',
+          errors: {'server': 'Erreur technique côté serveur'},
+        );
+      } else {
+        return AuthResponse(
+          success: false,
+          message: 'Erreur inattendue: ${e.toString()}',
+          errors: {'server': 'Erreur technique'},
+        );
+      }
     }
   }
+  Future<AuthResponse> register(RegisterData data) async {
+    final uri = Uri.parse(ApiConfig.baseUrl + ApiConfig.register);
+    var request = http.MultipartRequest('POST', uri);
 
-  Future<AuthResponse> register(RegisterData userData) async {
+    // Ajout des champs requis
+    request.fields['nom'] = data.nom;
+    request.fields['prenom'] = data.prenom;
+    request.fields['email'] = data.email;
+    request.fields['phoneNumber'] = data.phoneNumber;
+    request.fields['password'] = data.password;
+    request.fields['confirmPassword'] = data.confirmPassword;
+
+    // Ajout du fichier photo si disponible
+    if (data.photoFile != null) {
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'photoDeProfil', // Important : doit correspondre au backend C#
+          data.photoFile!.path,
+        ),
+      );
+    }
+
     try {
-      final response = await client.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.register}'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(userData.toJson()),
-      );
+      print('🔄 Envoi de la requête vers $uri');
+      final streamedResponse = await request.send();
+      final responseBody = await streamedResponse.stream.bytesToString();
 
-      return _handleAuthResponse(response);
+      print('✅ Statut HTTP : ${streamedResponse.statusCode}');
+      print('📦 Réponse brute : $responseBody');
+
+      final jsonResponse = jsonDecode(responseBody);
+
+      if (streamedResponse.statusCode == 200 || streamedResponse.statusCode == 400) {
+        return AuthResponse.fromJson(jsonResponse);
+      } else {
+        return AuthResponse(
+          success: false,
+          message: 'Erreur serveur (${streamedResponse.statusCode})',
+          errors: jsonResponse['errors'] != null
+              ? Map<String, String>.from(jsonResponse['errors'])
+              : null,
+        );
+      }
     } catch (e) {
-      if (kDebugMode) print('Register Error: $e');
-      rethrow;
-    }
-  }
-
-  AuthResponse _handleAuthResponse(http.Response response) {
-    final responseData = jsonDecode(response.body);
-    
-    if (response.statusCode == 200) {
-      return AuthResponse.fromJson(responseData);
-    } else {
-      throw AuthException(
-        message: responseData['message'] ?? 
-               (response.statusCode == 400 ? 'Requête invalide' : 'Erreur serveur'),
-        statusCode: response.statusCode,
-        errors: responseData['errors']?.cast<String, List<String>>(),
-      );
-    }
-  }
-}
-
-class AuthException implements Exception {
-  final String message;
-  final int statusCode;
-  final Map<String, List<String>>? errors;
-
-  AuthException({
-    required this.message,
-    required this.statusCode,
-    this.errors,
-  });
-
-  String get formattedErrors {
-    if (errors == null) return message;
-    return errors!.entries
-      .map((e) => '${e.key}: ${e.value.join(', ')}')
-      .join('\n');
-  }
-
-  @override
-  String toString() => message;
-}
-
-
-
-  // ... reste du code existant
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*import 'package:http/http.dart' as http;
-import 'package:stage_front_end/core/models/login_response.dart';
-import 'dart:convert';
-
-import 'package:stage_front_end/core/models/register_data.dart';
-
-class AuthService {
-  final String baseUrl;
-
-  AuthService({required this.baseUrl});
-
-  Future<AuthResponse> login(String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/api/auth/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
-    );
-
-    if (response.statusCode == 200) {
-      return AuthResponse.fromJson(jsonDecode(response.body));
-    } else {
-      final errorResponse = jsonDecode(response.body);
+      print('❌ Erreur réseau : $e');
       return AuthResponse(
         success: false,
-        message: errorResponse['message'] ?? 'Échec de la connexion. Veuillez vérifier vos informations.',
-        token: '',
-        userId: '',
-        userName: '',
-        email: '',
-        roles: [],
+        message: 'Erreur réseau: ${e.toString()}',
       );
     }
   }
 
-  Future<Map<String, dynamic>> register(RegisterData user) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/register'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(user.toJson()),
-    );
+ 
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception(jsonDecode(response.body)['message'] ?? 'Échec de l\'inscription');
+  Future<bool> testApiConnection() async {
+    final stopwatch = Stopwatch()..start();
+    debugPrint('🔄 Testing API connection to ${ApiConfig.baseUrl}');
+
+    try {
+      final uri = Uri.parse('${ApiConfig.baseUrl}/api/Auth/test-connection');
+      final response = await client
+          .get(uri)
+          .timeout(const Duration(seconds: 5));
+
+      stopwatch.stop();
+      debugPrint('⏱ Response time: ${stopwatch.elapsedMilliseconds}ms');
+      debugPrint('📊 Status: ${response.statusCode}');
+      debugPrint('📦 Body: ${response.body}');
+
+      if (response.statusCode != 200) {
+        throw HttpException('Unexpected status: ${response.statusCode}');
+      }
+
+      return true;
+    } on TimeoutException {
+      debugPrint('⌛ Timeout after 5 seconds');
+      return false;
+    } on SocketException catch (e) {
+      debugPrint('🔌 Network error: ${e.message}');
+      return false;
+    } catch (e) {
+      debugPrint('⚠️ Error: $e');
+      return false;
     }
   }
 }
-*/
+

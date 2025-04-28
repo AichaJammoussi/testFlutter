@@ -4,6 +4,8 @@ class User {
   final String? name;
   final String? profilePicture;
     final List<String> roles;
+  final String? photoDeProfil;
+
 
 
   User({
@@ -11,7 +13,9 @@ class User {
     required this.email,
     this.name,
     this.profilePicture,
-    required this.roles
+    required this.roles,
+    this.photoDeProfil,
+
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -19,7 +23,7 @@ class User {
       id: json['userId'],
       email: json['email'],
       name: json['name'],
-      profilePicture: json['profilePicture'], roles: [],
+      photoDeProfil: json['photoDeProfil'], roles: [],
     );
   }
     bool get isAdmin => roles.contains('Admin');

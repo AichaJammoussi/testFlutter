@@ -1,3 +1,5 @@
+import 'dart:io';
+
 class RegisterData {
   final String nom;
   final String prenom;
@@ -5,6 +7,8 @@ class RegisterData {
   final String password;
   final String confirmPassword;
   final String phoneNumber;
+  final File? photoFile;
+
 
   RegisterData({
     required this.nom,
@@ -13,6 +17,8 @@ class RegisterData {
     required this.password,
     required this.confirmPassword,
     required this.phoneNumber,
+        this.photoFile,
+
   });
 
   Map<String, dynamic> toJson() => {
