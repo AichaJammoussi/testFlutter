@@ -1,30 +1,28 @@
-class UserProfile {
+class UserProfileDTO {
   final String userId;
   final String email;
   final String nom;
   final String prenom;
   final String phoneNumber;
-  final String? profilePictureUrl;
+  final String? photoDeProfil;
 
-  UserProfile({
+  UserProfileDTO({
     required this.userId,
     required this.email,
     required this.nom,
     required this.prenom,
     required this.phoneNumber,
-    this.profilePictureUrl,
+    this.photoDeProfil,
   });
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
+  factory UserProfileDTO.fromJson(Map<String, dynamic> json) {
+    return UserProfileDTO(
       userId: json['userId'],
       email: json['email'],
       nom: json['nom'],
       prenom: json['prenom'],
       phoneNumber: json['phoneNumber'],
-      profilePictureUrl: json['profilePictureUrl'],
+      photoDeProfil: json['photoDeProfil'],
     );
   }
-
-  String get fullName => '$prenom $nom';
 }

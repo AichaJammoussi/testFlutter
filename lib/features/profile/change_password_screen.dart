@@ -1,119 +1,98 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../core/services/profile_service.dart';
+import 'package:testfront/core/services/profile_service.dart';
+import 'package:testfront/core/models/response_dto.dart'; // Importez ResponseDTO ici
 
-class ChangePasswordScreen extends StatefulWidget {
-  const ChangePasswordScreen({super.key});
+class ResetPasswordScreen extends StatefulWidget {
+  final String email;
+  final String token;
+
+  const ResetPasswordScreen({Key? key, required this.email, required this.token}) : super(key: key);
 
   @override
-  State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
+  _ResetPasswordScreenState createState() => _ResetPasswordScreenState();
 }
 
-class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _currentPasswordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  final _storage = const FlutterSecureStorage();
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _isLoading = false;
+  final TextEditingController _newPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _resetPassword() async {
+    final newPassword = _newPasswordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
 
-    setState(() => _isLoading = true);
+    if (newPassword.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Veuillez entrer un mot de passe valide")),
+      );
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Les mots de passe ne correspondent pas")),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final userId = await _storage.read(key: 'user_id');
-      if (userId != null) {
-        await Provider.of<ProfileService>(context, listen: false).changePassword(
-          userId: userId,
-          currentPassword: _currentPasswordController.text,
-          newPassword: _newPasswordController.text,
-        );
-        Navigator.pop(context);
+      final profileService = ProfileService();
+      final response = await profileService.resetPassword(
+        widget.email,
+        widget.token,
+        newPassword,
+        confirmPassword,
+      );
+
+      if (response.success) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Mot de passe changé avec succès')),
+          const SnackBar(content: Text("Mot de passe réinitialisé avec succès")),
         );
-      }
+        Navigator.pop(context); // Retour à l'écran précédent (login ou autre)
+      } 
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: ${e.toString()}')),
+        SnackBar(content: Text("Erreur: $e")),
       );
     } finally {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Changer le mot de passe'),
-      ),
+      appBar: AppBar(title: const Text('Réinitialiser le mot de passe')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _currentPasswordController,
-                decoration: const InputDecoration(labelText: 'Mot de passe actuel'),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer votre mot de passe actuel';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _newPasswordController,
-                decoration: const InputDecoration(labelText: 'Nouveau mot de passe'),
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Veuillez entrer un nouveau mot de passe';
-                  }
-                  if (value.length < 8) {
-                    return 'Le mot de passe doit contenir au moins 8 caractères';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _confirmPasswordController,
-                decoration: const InputDecoration(labelText: 'Confirmer le nouveau mot de passe'),
-                obscureText: true,
-                validator: (value) {
-                  if (value != _newPasswordController.text) {
-                    return 'Les mots de passe ne correspondent pas';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Changer le mot de passe'),
-              ),
-            ],
-          ),
+        child: Column(
+          children: <Widget>[
+            TextFormField(
+              controller: _newPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Nouveau mot de passe'),
+            ),
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: 'Confirmer le mot de passe'),
+            ),
+            const SizedBox(height: 20),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: _resetPassword,
+                    child: const Text('Réinitialiser le mot de passe'),
+                  ),
+          ],
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _currentPasswordController.dispose();
-    _newPasswordController.dispose();
-    _confirmPasswordController.dispose();
-    super.dispose();
   }
 }

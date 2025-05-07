@@ -1,0 +1,35 @@
+class AdminDashboard extends StatefulWidget {
+  @override
+  _AdminDashboardState createState() => _AdminDashboardState();
+}
+
+class _AdminDashboardState extends State<AdminDashboard> {
+  bool _isAdmin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkUserRole();
+  }
+
+  Future<void> _checkUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final roles = prefs.getStringList('user_roles') ?? [];
+    
+    if (!roles.contains('Admin')) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      setState(() => _isAdmin = true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isAdmin) return Scaffold(body: Center(child: CircularProgressIndicator()));
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Tableau de bord Admin')),
+      body: Center(child: Text('Contenu réservé aux administrateurs')),
+    );
+  }
+}

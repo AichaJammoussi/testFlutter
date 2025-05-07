@@ -4,12 +4,17 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/http.dart' as client;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:testfront/core/config/api_config.dart';
-import 'package:testfront/core/models/Auth_response.dart';
+import 'package:testfront/core/models/auth_response.dart';
 import 'package:testfront/core/models/register_data.dart';
 
 class AuthService {
   final http.Client client;
+  static const String _authTokenKey = 'auth_token';
+  
+  
+  static const String _userIdKey = 'user_id';
 
   AuthService({http.Client? client}) : client = client ?? http.Client();
 
@@ -128,7 +133,33 @@ class AuthService {
     }
   }
 
- 
+ Future<String?> getAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
+  }
+  Future<void> saveAuthToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_authTokenKey, token);
+  }
+   Future<void> clearAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_authTokenKey);
+  }
+
+ Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    return token != null && token.isNotEmpty;
+  }
+  Future<String?> getUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_userIdKey);
+  }
+
+  Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+  }
 
   Future<bool> testApiConnection() async {
     final stopwatch = Stopwatch()..start();
@@ -162,4 +193,8 @@ class AuthService {
     }
   }
 }
+/* | 
+http.Client | Le moteur qui envoie tes requêtes HTTP/HTTPS
+final client; | Ta voiture pour aller vers l'API
+client ?? http.Client(); | Soit tu amènes ta propre voiture, soit je t’en donne une neuve. 🚗*/
 

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -34,6 +35,7 @@ class _RegisterScreenState extends State<RegisterScreen>
   Map<String, String> _fieldErrors = {};
   String _passwordStrength = '';
   Color _passwordStrengthColor = Colors.red;
+  String? _generalError;
 
   bool _galleryPermissionAsked = false;
   bool _cameraPermissionAsked = false;
@@ -270,15 +272,23 @@ class _RegisterScreenState extends State<RegisterScreen>
       } else {
         setState(() {
           if (authResponse.errors != null) {
-            _fieldErrors = Map.from(authResponse.errors!);
+            _fieldErrors = Map<String, String>.from(
+              authResponse.errors!.map(
+                (key, value) => MapEntry(key, value ?? 'Erreur inconnue'),
+              ),
+            );
           }
+          _generalError = authResponse.message;
         });
-        if (_fieldErrors.isEmpty) {
-          _showErrorMessage(authResponse.message);
+
+        _formKey.currentState?.validate();
+
+        if (_fieldErrors.isEmpty && _generalError != null) {
+          _showErrorMessage(_generalError!);
         }
       }
     } catch (e) {
-      _showErrorMessage("Erreur technique: ${e.toString()}");
+      _showErrorMessage('Erreur technique: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -302,6 +312,8 @@ class _RegisterScreenState extends State<RegisterScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isWeb = kIsWeb && MediaQuery.of(context).size.width > 800;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FBFF),
       body: Stack(
@@ -332,27 +344,14 @@ class _RegisterScreenState extends State<RegisterScreen>
           ),
           SafeArea(
             child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      const Text(
-                        'Créer un compte',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF172B5A),
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-                      _buildRegisterForm(),
-                    ],
-                  ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isWeb ? 1200 : double.infinity,
                 ),
+                child:
+                    isWeb
+                        ? _buildWebLayout()
+                        : SingleChildScrollView(child: _buildMobileLayout()),
               ),
             ),
           ),
@@ -361,6 +360,94 @@ class _RegisterScreenState extends State<RegisterScreen>
     );
   }
 
+  Widget _buildWebLayout() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 40),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(child: _buildAppLogo(large: true)),
+          const SizedBox(width: 60),
+          Expanded(child: SingleChildScrollView(child: _buildRegisterForm())),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const SizedBox(height: 20),
+          const Text(
+            'Créer un compte',
+            style: TextStyle(
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF172B5A),
+            ),
+          ),
+          const SizedBox(height: 30),
+          _buildRegisterForm(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppLogo({bool large = false}) {
+  return Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      // Espacement accru au-dessus de l'image
+      SizedBox(height: large ? 50 : 30),  // 50px pour web, 30px pour mobile
+      
+      Container(
+        height: large ? 250 : 200,
+        width: large ? 250 : 200,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF2A5298).withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25),
+          child: Image.asset(
+            'lib/core/images/steros.jpg',
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+      
+      // Espacement réduit sous l'image pour compenser
+      const SizedBox(height: 16),  // Réduit de 24 à 16
+      
+      Text(
+        'Bienvenue',
+        style: TextStyle(
+          fontSize: large ? 36 : 30,
+          fontWeight: FontWeight.bold,
+          color: const Color(0xFF172B5A),
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Rejoignez notre communauté',
+        style: TextStyle(
+          fontSize: large ? 18 : 16,
+          color: const Color(0xFF7A869A),
+        ),
+      ),
+    ],
+  );
+}
   Widget _buildRegisterForm() {
     return Form(
       key: _formKey,
@@ -369,27 +456,29 @@ class _RegisterScreenState extends State<RegisterScreen>
         children: [
           Column(
             children: [
-              GestureDetector(
-                onTap: _showImagePickerOptions,
-                child: Container(
-                  height: 100,
-                  width: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(color: Colors.grey[400]!),
+              Center(
+                child: GestureDetector(
+                  onTap: _showImagePickerOptions,
+                  child: Container(
+                    height: 100,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(25),
+                      border: Border.all(color: Colors.grey[400]!),
+                    ),
+                    child:
+                        _image != null
+                            ? ClipRRect(
+                              borderRadius: BorderRadius.circular(25),
+                              child: Image.file(_image!, fit: BoxFit.cover),
+                            )
+                            : Icon(
+                              Icons.add_a_photo,
+                              size: 40,
+                              color: Colors.grey[600],
+                            ),
                   ),
-                  child:
-                      _image != null
-                          ? ClipRRect(
-                            borderRadius: BorderRadius.circular(25),
-                            child: Image.file(_image!, fit: BoxFit.cover),
-                          )
-                          : Icon(
-                            Icons.add_a_photo,
-                            size: 40,
-                            color: Colors.grey[600],
-                          ),
                 ),
               ),
               if (_fieldErrors.containsKey('photo'))
@@ -398,13 +487,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                   child: Text(
                     _fieldErrors['photo']!,
                     style: const TextStyle(color: Colors.red, fontSize: 12),
+                    textAlign: TextAlign.center,
                   ),
                 ),
             ],
           ),
           const SizedBox(height: 30),
-
-          // Reste du formulaire
           Row(
             children: [
               Expanded(
@@ -465,13 +553,20 @@ class _RegisterScreenState extends State<RegisterScreen>
       ),
       child: TextFormField(
         controller: _phoneController,
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: 'Numéro de téléphone',
-          prefixIcon: Icon(Icons.phone_outlined, color: Color(0xFF2A5298)),
+          prefixIcon: const Icon(
+            Icons.phone_outlined,
+            color: Color(0xFF2A5298),
+          ),
+          errorText: _fieldErrors['phoneNumber'],
         ),
         keyboardType: TextInputType.phone,
         inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[\d+]'))],
         validator: (value) {
+          if (_fieldErrors.containsKey('phoneNumber')) {
+            return _fieldErrors['phoneNumber'];
+          }
           if (value == null || value.isEmpty) {
             return 'Veuillez entrer votre numéro';
           }
@@ -516,9 +611,13 @@ class _RegisterScreenState extends State<RegisterScreen>
                 onPressed:
                     () => setState(() => _obscurePassword = !_obscurePassword),
               ),
+              errorText: _fieldErrors['password'],
             ),
             onChanged: (value) => _updatePasswordStrength(),
             validator: (value) {
+              if (_fieldErrors.containsKey('password')) {
+                return _fieldErrors['password'];
+              }
               if (value == null || value.isEmpty) {
                 return 'Veuillez entrer un mot de passe';
               }
@@ -563,14 +662,16 @@ class _RegisterScreenState extends State<RegisterScreen>
                   () => _obscureConfirmPassword = !_obscureConfirmPassword,
                 ),
           ),
+          errorText: _fieldErrors['confirmPassword'],
         ),
         validator: (value) {
+          if (_fieldErrors.containsKey('confirmPassword')) {
+            return _fieldErrors['confirmPassword'];
+          }
           if (value == null || value.isEmpty) {
             return 'Veuillez confirmer votre mot de passe';
           }
-          if (value != _passwordController.text) {
-            return 'Les mots de passe ne correspondent pas';
-          }
+
           return null;
         },
       ),
@@ -669,7 +770,7 @@ class _RegisterScreenState extends State<RegisterScreen>
     required String hintText,
     required IconData icon,
     bool obscureText = false,
-    Widget? suffixIcon,
+    Widget? suffix,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Container(
@@ -690,10 +791,13 @@ class _RegisterScreenState extends State<RegisterScreen>
         decoration: InputDecoration(
           hintText: hintText,
           prefixIcon: Icon(icon, color: const Color(0xFF2A5298)),
-          suffixIcon: suffixIcon,
+          suffixIcon: suffix,
           errorText: _fieldErrors[fieldKey],
         ),
         validator: (value) {
+          if (_fieldErrors.containsKey(fieldKey)) {
+            return _fieldErrors[fieldKey];
+          }
           if (value == null || value.isEmpty) {
             return 'Ce champ est obligatoire';
           }

@@ -14,4 +14,5 @@ class AuthStorage {
   static Future<void> clear() async {
     await _storage.delete(key: 'jwt_token');
   }
+  
 }
