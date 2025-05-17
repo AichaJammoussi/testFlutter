@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 
 class ApiConfig {
@@ -6,8 +8,29 @@ class ApiConfig {
     if (kIsWeb) {
       return 'https://localhost:7261'; // Web
     } else {
-      return 'https://45ed-102-158-13-36.ngrok-free.app'; // Mobile (émulateur)
+      return 'https://de31-102-158-20-114.ngrok-free.app'; // Mobile (émulateur)
     }
+  }
+
+  String adaptImageUrl(String url) {
+    if (kIsWeb) {
+      return url; // Web peut utiliser localhost directement
+    }
+
+    if (Platform.isAndroid) {
+      // Pour l'émulateur Android, on remplace localhost par 10.0.2.2
+      return url.replaceAll("localhost", "10.0.2.2");
+    }
+    if (Platform.isIOS) {
+      // Pour iOS, si besoin d'un comportement spécifique (éventuellement utiliser un tunnel ngrok ou autre)
+      return url.replaceAll(
+        "localhost",
+        "127.0.0.1",
+      ); // Exemples pour iOS, à personnaliser selon besoin
+    }
+
+    // Autres plateformes ( mobile réel, etc.)
+    return url;
   }
 
   // Endpoints
@@ -17,4 +40,6 @@ class ApiConfig {
   static const String role = '/api/Role';
 
   static const String vehicules = '/api/Vehicule';
+  static const String vignettes = '/api/Vignette';
+  static const String missions = '/api/Mission';
 }

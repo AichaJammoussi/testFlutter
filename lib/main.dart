@@ -114,11 +114,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:testfront/core/models/RoleProvider.dart';
 import 'package:testfront/core/models/auth_storage.dart';
+import 'package:testfront/core/providers/VignetteProvider.dart';
+import 'package:testfront/core/providers/mission_provider.dart'
+    show MissionProvider;
 import 'package:testfront/core/services/VehiculeProvider.dart';
+import 'package:testfront/core/services/VehiculeService.dart';
 import 'package:testfront/features/auth/login_screen.dart';
 import 'package:testfront/features/auth/register_screen.dart';
 import 'package:testfront/features/auth/conditions_screen.dart';
 import 'package:testfront/features/home/home_screen.dart';
+import 'package:testfront/features/mission/MissionPage.dart';
 import 'package:testfront/features/profile/ForgotPasswordScreen.dart';
 import 'package:testfront/features/profile/change_password_screen.dart';
 import 'package:testfront/features/profile/profile_screen.dart';
@@ -139,6 +144,8 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => RoleProvider()),
         ChangeNotifierProvider(create: (_) => VehiculeProvider()),
+        ChangeNotifierProvider(create: (_) => VignetteProvider()),
+        ChangeNotifierProvider(create: (_) => MissionProvider()),
       ],
 
       child: const MyApp(),
@@ -166,7 +173,8 @@ class MyApp extends StatelessWidget {
         '/profile': (_) => const ProfileScreen(),
         '/role': (_) => const RoleListScreen(),
         '/forgot-password': (_) => const ForgotPasswordScreen(),
-        '/vehicule': (_) => const VehiculeScreen(),
+        '/vehicule': (_) => VehiculeScreen(),
+        '/mission': (_) => MissionsScreen(),
 
         // Ajoute une route nommée si nécessaire pour reset
       },

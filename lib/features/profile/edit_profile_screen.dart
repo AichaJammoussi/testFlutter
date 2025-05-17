@@ -28,7 +28,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final userId = await _storage.read(key: 'user_id');
     if (userId != null) {
       final profile = await Provider.of<ProfileService>(context, listen: false)
-          .getProfile(userId);
+          .getUserProfile(userId);
       setState(() {
         _nomController.text = profile.nom;
         _prenomController.text = profile.prenom;

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:testfront/core/models/VehiculeCreationDTO.dart';
@@ -74,83 +75,103 @@ class VehiculeService {
   Future<ResponseDTO<VehiculeDTO>> getVehiculeById(int id) async {
     try {
       final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('$_baseUrl${ApiConfig.vehicules}/$id'),
-        headers: headers,
-      );
+      final url = Uri.parse('$_baseUrl${ApiConfig.vehicules}/$id');
+      print('[GET] Récupération véhicule ID: $id | URL: $url');
+
+      final response = await http.get(url, headers: headers);
+      print('[RESPONSE] Code: ${response.statusCode} | Body: ${response.body}');
 
       if (response.statusCode == 200) {
+        final parsedJson = json.decode(response.body);
+        print('[PARSE] JSON reçu: $parsedJson');
         return ResponseDTO<VehiculeDTO>.fromJson(
           json.decode(response.body),
+
           (data) => VehiculeDTO.fromJson(data),
         );
       }
+      
 
-      return _handleError('Erreur ${response.statusCode}');
-    } catch (e) {
+      print('[ERREUR] Statut HTTP inattendu: ${response.statusCode}');
+      return _handleError('Erreur HTTP ${response.statusCode}');
+    } catch (e, stacktrace) {
+      print('[EXCEPTION] Erreur lors du fetch du véhicule ID: $id');
+      print('Message: $e');
+      print('Stacktrace: $stacktrace');
       return _handleError(e);
     }
   }
 
-  // 🔹 3. Create
   Future<ResponseDTO<VehiculeDTO>> createVehicule(
     VehiculeCreationDTO dto,
   ) async {
     try {
-      final headers = await _getHeaders();
-      final body = jsonEncode(dto.toJson());
-
       final response = await http.post(
         Uri.parse('$_baseUrl${ApiConfig.vehicules}'),
-        headers: headers,
-        body: body,
+        headers: {'Content-Type': 'application/json', 'Accept': '*/*'},
+        body: jsonEncode(dto.toJson()),
       );
 
+      final jsonRes = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return ResponseDTO<VehiculeDTO>.fromJson(
-          json.decode(response.body),
-          (data) => VehiculeDTO.fromJson(data),
+        return ResponseDTO(success: true, message: jsonRes['message']);
+      } else {
+        // Ajout d'une gestion plus robuste des erreurs de l'API
+        return ResponseDTO(
+          success: false,
+          message:
+              jsonRes['message'] ??
+              'Une erreur est survenue lors de la création du véhicule.',
+          errors:
+              jsonRes['errors'] != null
+                  ? Map<String, String>.from(jsonRes['errors'])
+                  : null,
         );
-      } else if (response.statusCode == 400) {
-        return _handleError('Requête invalide : ${response.body}');
-      } else if (response.statusCode == 404) {
-        return _handleError('Ressource non trouvée : ${response.body}');
-      } else if (response.statusCode == 500) {
-        return _handleError('Erreur serveur : ${response.body}');
       }
-
-      return _handleError(
-        'Erreur inattendue (${response.statusCode}) : ${response.body}',
+    } on SocketException catch (_) {
+      return ResponseDTO(
+        success: false,
+        message:
+            'Impossible de se connecter au serveur. Vérifiez votre connexion Internet.',
+      );
+    } on FormatException catch (_) {
+      return ResponseDTO(
+        success: false,
+        message: 'Format de réponse invalide. Veuillez réessayer plus tard.',
       );
     } catch (e) {
-      return _handleError('Exception levée : ${e.toString()}');
+      return ResponseDTO(
+        success: false,
+        message: 'Une erreur inattendue est survenue: ${e.toString()}',
+      );
     }
   }
 
-  // 🔹 4. Update
-/*  Future<ResponseDTO<VehiculeDTO>> updateVehicule(VehiculeDTO dto) async {
+  Future<ResponseDTO> updateVehicule(int id, VehiculeCreationDTO dto) async {
     try {
-      final headers = await _getHeaders();
-      final body = jsonEncode({"dto": dto.toJson()});
-
       final response = await http.put(
-        Uri.parse('$_baseUrl${ApiConfig.vehicules}/${dto.vehiculeId}'),
-        headers: headers,
-        body: body,
+        Uri.parse('$_baseUrl${ApiConfig.vehicules}/$id'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(dto.toJson()),
       );
 
+      final jsonRes = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return ResponseDTO<VehiculeDTO>.fromJson(
-          json.decode(response.body),
-          (data) => VehiculeDTO.fromJson(data),
+        return ResponseDTO(success: true, message: jsonRes['message']);
+      } else {
+        return ResponseDTO(
+          success: false,
+          message: jsonRes['message'],
+          errors:
+              jsonRes['errors'] != null
+                  ? Map<String, String>.from(jsonRes['errors'])
+                  : null,
         );
       }
-
-      return _handleError('Erreur ${response.statusCode}');
     } catch (e) {
-      return _handleError(e);
+      return ResponseDTO(success: false, message: "Erreur réseau : $e");
     }
-  }*/
+  }
 
   // 🔹 5. Delete
   Future<ResponseDTO<bool>> deleteVehicule(int id) async {
@@ -160,15 +181,20 @@ class VehiculeService {
         Uri.parse('$_baseUrl${ApiConfig.vehicules}/$id'),
         headers: headers,
       );
+      final jsonRes = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        return ResponseDTO<bool>.fromJson(
-          json.decode(response.body),
-          (data) => data as bool,
+        return ResponseDTO(success: true, message: jsonRes['message']);
+      } else {
+        return ResponseDTO(
+          success: false,
+          message: jsonRes['message'],
+          errors:
+              jsonRes['errors'] != null
+                  ? Map<String, String>.from(jsonRes['errors'])
+                  : null,
         );
       }
-
-      return _handleError('Erreur ${response.statusCode}');
     } catch (e) {
       return _handleError(e);
     }

@@ -2,7 +2,7 @@ class ResponseDTO<T> {
   final bool success;
   final String message;
   final T data;
-  final Map<String, dynamic>? errors;
+  final Map<String, String>? errors;
 
   ResponseDTO({
     required this.success,
@@ -19,9 +19,10 @@ class ResponseDTO<T> {
       success: json['success'],
       message: json['message'],
       data: fromJsonT(json['data']),
-      errors: (json['errors'] as Map?)?.map(
-        (k, v) => MapEntry(k.toString(), v.toString()),
-      ),
+      errors:
+          json['errors'] != null
+              ? Map<String, String>.from(json['errors'])
+              : null,
     );
   }
 }

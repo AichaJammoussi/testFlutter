@@ -1,12 +1,10 @@
-import 'package:testfront/core/models/StatutVehicule.dart';
-
 class VehiculeCreationDTO {
-  String marque;
-  String modele;
-  String immatriculation;
-  int anneeMiseEnCirculation;
-  int kilometrage;
-  StatutVehicule statut;
+  final String marque;
+  final String modele;
+  final String immatriculation;
+  final int anneeMiseEnCirculation;
+  final int kilometrage;
+  final int statut; // << NOTEZ que c'est bien un int ici
 
   VehiculeCreationDTO({
     required this.marque,
@@ -18,11 +16,11 @@ class VehiculeCreationDTO {
   });
 
   Map<String, dynamic> toJson() => {
-    'marque': marque,
-    'modele': modele,
-    'immatriculation': immatriculation,
-    'anneeMiseEnCirculation': anneeMiseEnCirculation,
-    'kilometrage': kilometrage,
-    'statut': statut.name,
+    'Marque': marque,
+    'Modele': modele,
+    'Immatriculation': immatriculation,
+    'AnneeMiseEnCirculation': anneeMiseEnCirculation,
+    'Kilometrage': kilometrage,
+    'Statut': statut,
   };
 }

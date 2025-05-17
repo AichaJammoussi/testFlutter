@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _redirectBasedOnRole(List<String> roles) {
     if (roles.contains('Admin')) {
-      Navigator.pushReplacementNamed(context, '/vehicule');
+      Navigator.pushReplacementNamed(context, '/mission');
     } else if (roles.contains('Employe')) {
       Navigator.pushReplacementNamed(context, '/profile');
     } else {

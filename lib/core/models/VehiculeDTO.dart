@@ -1,6 +1,5 @@
 import 'package:testfront/core/models/StatutVehicule.dart';
 
-
 class VehiculeDTO {
   final int vehiculeId;
   final String marque;
@@ -26,12 +25,21 @@ class VehiculeDTO {
       marque: json['marque'],
       modele: json['modele'],
       immatriculation: json['immatriculation'],
-      anneeMiseEnCirculation: json['anneeMiseEnCirculation'],
+      anneeMiseEnCirculation:
+          json['anneeMiseEnCirculation'], // 👈 ne pas parser en String
       kilometrage: json['kilometrage'],
-      statut: StatutVehicule.values.firstWhere(
-        (e) => e.name.toLowerCase() == json['statut'].toString().toLowerCase(),
-        orElse: () => StatutVehicule.Disponible,
-      ),
+      statut: StatutVehicule.fromString(json['statut']),
     );
+  }
+  Map<String, dynamic> toJson() {
+    return {
+      'vehiculeId': vehiculeId,
+      'marque': marque,
+      'modele': modele,
+      'immatriculation': immatriculation,
+      'anneeMiseEnCirculation': anneeMiseEnCirculation,
+      'kilometrage': kilometrage,
+      'statut': statut,
+    };
   }
 }
