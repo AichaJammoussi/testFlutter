@@ -42,4 +42,6 @@ class ApiConfig {
   static const String vehicules = '/api/Vehicule';
   static const String vignettes = '/api/Vignette';
   static const String missions = '/api/Mission';
+  static const String notifications = '/api/Notifications';
+  static const String taches = '/api/Taches';
 }

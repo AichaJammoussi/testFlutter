@@ -8,6 +8,7 @@ import 'package:testfront/core/models/PrioriteMission.dart';
 import 'package:testfront/core/models/StatutMission.dart';
 import 'package:testfront/core/models/VehiculeDTO.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
+import 'package:testfront/features/mission/AjouterTacheScreen.dart';
 
 class MissionsScreen extends StatefulWidget {
   const MissionsScreen({Key? key}) : super(key: key);

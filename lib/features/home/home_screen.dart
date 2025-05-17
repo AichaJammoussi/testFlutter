@@ -14,7 +14,6 @@ class HomeScreen extends StatelessWidget {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await AuthStorage.clear();
-              Navigator.pushReplacementNamed(context, '/login');
             },
           ),
         ],

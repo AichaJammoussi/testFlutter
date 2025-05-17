@@ -1,35 +1,102 @@
-class AdminDashboard extends StatefulWidget {
-  @override
-  _AdminDashboardState createState() => _AdminDashboardState();
-}
+import 'package:flutter/material.dart';
 
-class _AdminDashboardState extends State<AdminDashboard> {
-  bool _isAdmin = false;
+class Sidebar extends StatelessWidget {
+  const Sidebar({super.key});
 
-  @override
-  void initState() {
-    super.initState();
-    _checkUserRole();
-  }
+  Widget buildMenuItem({
+    required IconData icon,
+    required String label,
+    int? badgeCount,
+    bool isActive = false,
+  }) {
+    final textColor = isActive ? Colors.white : Colors.white70;
+    final bgColor = isActive ? const Color(0xFF2F3AF1) : Colors.transparent;
 
-  Future<void> _checkUserRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    final roles = prefs.getStringList('user_roles') ?? [];
-    
-    if (!roles.contains('Admin')) {
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      setState(() => _isAdmin = true);
-    }
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: Icon(icon, color: textColor),
+        title: Text(label, style: TextStyle(color: textColor)),
+        trailing: badgeCount != null
+            ? Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blueAccent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  badgeCount.toString(),
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              )
+            : null,
+        onTap: () {},
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_isAdmin) return Scaffold(body: Center(child: CircularProgressIndicator()));
-
-    return Scaffold(
-      appBar: AppBar(title: Text('Tableau de bord Admin')),
-      body: Center(child: Text('Contenu réservé aux administrateurs')),
+    return Container(
+      width: 275,
+      color: const Color(0xFF0B0D2C),
+      padding: const EdgeInsets.symmetric(vertical: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Logo
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                const CircleAvatar(
+                  backgroundImage: AssetImage('assets/images/logo.png'),
+                  radius: 20,
+                  backgroundColor: Colors.white,
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  "pizza\nmail",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
+                  ),
+                )
+              ],
+            ),
+          ),
+          const SizedBox(height: 30),
+          buildMenuItem(icon: Icons.inbox, label: "Inbox", badgeCount: 42),
+          buildMenuItem(icon: Icons.send, label: "Sent"),
+          buildMenuItem(icon: Icons.edit, label: "Drafts", badgeCount: 2),
+          buildMenuItem(icon: Icons.star_border, label: "Starred"),
+          buildMenuItem(icon: Icons.mail, label: "All mail", isActive: true),
+          buildMenuItem(icon: Icons.warning_amber, label: "Junk"),
+          buildMenuItem(icon: Icons.delete_outline, label: "Trash"),
+          const SizedBox(height: 16),
+          const Divider(color: Colors.white24),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text("Folders", style: TextStyle(color: Colors.white70)),
+          ),
+          buildMenuItem(icon: Icons.folder, label: "Family"),
+          buildMenuItem(icon: Icons.folder, label: "Work"),
+          const Spacer(),
+          Center(
+            child: TextButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.arrow_back, color: Colors.white54),
+              label: const Text("Collapse", style: TextStyle(color: Colors.white54)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

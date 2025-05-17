@@ -117,11 +117,14 @@ import 'package:testfront/core/models/auth_storage.dart';
 import 'package:testfront/core/providers/VignetteProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart'
     show MissionProvider;
+import 'package:testfront/core/providers/notification_provider.dart';
+import 'package:testfront/core/providers/tache_provider.dart';
 import 'package:testfront/core/services/VehiculeProvider.dart';
 import 'package:testfront/core/services/VehiculeService.dart';
 import 'package:testfront/features/auth/login_screen.dart';
 import 'package:testfront/features/auth/register_screen.dart';
 import 'package:testfront/features/auth/conditions_screen.dart';
+import 'package:testfront/features/dashbords/WebDashboard.dart';
 import 'package:testfront/features/home/home_screen.dart';
 import 'package:testfront/features/mission/MissionPage.dart';
 import 'package:testfront/features/profile/ForgotPasswordScreen.dart';
@@ -146,6 +149,9 @@ void main() {
         ChangeNotifierProvider(create: (_) => VehiculeProvider()),
         ChangeNotifierProvider(create: (_) => VignetteProvider()),
         ChangeNotifierProvider(create: (_) => MissionProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
+                ChangeNotifierProvider(create: (_) => TacheProvider()),
+
       ],
 
       child: const MyApp(),
@@ -175,9 +181,22 @@ class MyApp extends StatelessWidget {
         '/forgot-password': (_) => const ForgotPasswordScreen(),
         '/vehicule': (_) => VehiculeScreen(),
         '/mission': (_) => MissionsScreen(),
-
+        //'/dashbord': (_) => PizzaMailApp(),
+        /*'/home':
+            (_) => MainLayout(currentRoute: '/home', child: const HomeScreen()),*/
         // Ajoute une route nommée si nécessaire pour reset
       },
+      /* onGenerateRoute: (settings) {
+        if (settings.name == '/web-dashboard') {
+          final args = settings.arguments as Map<String, dynamic>?;
+
+          final isAdmin = args != null && args['isAdmin'] == true;
+
+          return MaterialPageRoute(
+            builder: (_) => WebDashboard(isAdmin: isAdmin),
+          );
+        }
+      },*/
     );
   }
 

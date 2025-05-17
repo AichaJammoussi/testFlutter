@@ -149,6 +149,52 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  /*
+  void _redirectBasedOnRole(List<String> roles) {
+    final isAdmin = roles.contains('Admin');
+    final hasOtherRoles = roles.isNotEmpty && !isAdmin;
+
+    if (kIsWeb) {
+      if (isAdmin) {
+        Navigator.pushReplacementNamed(
+          
+          context,
+          '/web-dashboard',
+          arguments: {'isAdmin': true},
+        );
+      } else if (hasOtherRoles) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/web-dashboard',
+          arguments: {'isAdmin': false},
+        );
+      } else {
+        Navigator.pushReplacementNamed(
+          context,
+          '/no-role',
+        ); // page vide ou erreur
+      }
+    } else {
+      if (isAdmin) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/mobile-dashboard',
+          arguments: {'isAdmin': true},
+        );
+      } else if (hasOtherRoles) {
+        Navigator.pushReplacementNamed(
+          context,
+          '/mobile-dashboard',
+          arguments: {'isAdmin': false},
+        );
+      } else {
+        Navigator.pushReplacementNamed(
+          context,
+          '/no-role',
+        ); // page vide ou erreur
+      }
+    }
+  }*/
   void _redirectBasedOnRole(List<String> roles) {
     if (roles.contains('Admin')) {
       Navigator.pushReplacementNamed(context, '/mission');
@@ -158,6 +204,54 @@ class _LoginScreenState extends State<LoginScreen>
       Navigator.pushReplacementNamed(context, '/profile');
     }
   }
+  /*void _redirectBasedOnRole(List<String> roles) {
+  final isAdmin = roles.contains('Admin');
+  final hasOtherRoles = roles.isNotEmpty && !isAdmin;
+
+  if (isAdmin) {
+    // Admin web vs mobile
+    if (kIsWeb) {
+      Navigator.pushReplacementNamed(context, '/web-admin-dashboard');
+    } else {
+      Navigator.pushReplacementNamed(context, '/mobile-admin-dashboard');
+    }
+  } else if (hasOtherRoles) {
+    // Employé web vs mobile
+    if (kIsWeb) {
+      Navigator.pushReplacementNamed(context, '/web-employe-dashboard');
+    } else {
+      Navigator.pushReplacementNamed(context, '/mobile-employe-dashboard');
+    }
+  } else {
+    Navigator.pushReplacementNamed(context, '/homepage');
+  }
+  
+  
+  
+  
+  final isAdmin = roles.contains('Admin');
+final hasOtherRoles = roles.isNotEmpty && !isAdmin;
+
+if (kIsWeb) {
+  if (isAdmin) {
+    Navigator.pushReplacementNamed(context, '/web-dashboard', arguments: {'isAdmin': true});
+  } else if (hasOtherRoles) {
+    Navigator.pushReplacementNamed(context, '/web-dashboard', arguments: {'isAdmin': false});
+  } else {
+    Navigator.pushReplacementNamed(context, '/no-role'); // page vide ou erreur
+  }
+} else {
+  if (isAdmin) {
+    Navigator.pushReplacementNamed(context, '/mobile-dashboard', arguments: {'isAdmin': true});
+  } else if (hasOtherRoles) {
+    Navigator.pushReplacementNamed(context, '/mobile-dashboard', arguments: {'isAdmin': false});
+  } else {
+    Navigator.pushReplacementNamed(context, '/no-role'); // page vide ou erreur
+  }
+}
+
+  
+  */
 
   void _showSuccessMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

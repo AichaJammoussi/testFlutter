@@ -51,6 +51,7 @@ dependencies:
   image_picker_for_web: ^3.0.6
   mime_type: 1.0.1 
   google_sign_in: ^6.1.5
+  flutter_side_menu: ^0.5.41
 
 
 
