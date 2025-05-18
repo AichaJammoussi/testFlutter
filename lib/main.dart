@@ -150,8 +150,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => VignetteProvider()),
         ChangeNotifierProvider(create: (_) => MissionProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
-                ChangeNotifierProvider(create: (_) => TacheProvider()),
-
+        ChangeNotifierProvider(create: (_) => TacheProvider()),
       ],
 
       child: const MyApp(),

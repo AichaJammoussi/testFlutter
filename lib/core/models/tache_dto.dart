@@ -36,8 +36,14 @@ class TacheDTO {
       tacheId: json['tacheId'],
       titre: json['titre'],
       description: json['description'],
-      statutTache: StatutTache.fromInt(json['statut']),
-      priorite: PrioriteTache.fromInt(json['priorite']),
+      statutTache:
+          json['statutTache'] != null
+              ? StatutTache.fromInt(json['statutTache'])
+              : null,
+      priorite:
+          json['priorite'] != null
+              ? PrioriteTache.fromInt(json['priorite'])
+              : null,
       dateCreation: DateTime.parse(json['dateCreation']),
       dateRealisation:
           json['dateRealisation'] != null
@@ -56,16 +62,12 @@ class TacheDTO {
     );
   }
 
-  get statut => null;
-
-  get userPrenom => null;
-
   Map<String, dynamic> toJson() {
     return {
       'tacheId': tacheId,
       'titre': titre,
       'description': description,
-      'statutTache': statutTache.toString().split('.').last,
+      'statutTache': statutTache?.index,
       'priorite': priorite?.index,
       'dateCreation': dateCreation.toIso8601String(),
       'dateRealisation': dateRealisation?.toIso8601String(),

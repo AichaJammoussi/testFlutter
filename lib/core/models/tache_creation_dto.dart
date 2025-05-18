@@ -7,7 +7,7 @@ class TacheCreationDTO {
   final PrioriteTache priorite;
   final DateTime dateCreation;
   final String userId;
-  final int? missionId;
+  final int? idMission;
 
   TacheCreationDTO({
     required this.titre,
@@ -15,16 +15,14 @@ class TacheCreationDTO {
     required this.priorite,
     required this.dateCreation,
     required this.userId,
-    this.missionId,
+    this.idMission,
   });
 
   Map<String, dynamic> toJson() => {
-  'titre': titre,
-  'description': description,
-  'priorite': priorite.index,
-  'userId': userId,
-  'missionId': missionId,
-  'dateCreation': dateCreation.toIso8601String(),
-};
-
+    'Titre': titre,
+    'Description': description,
+    'Priorite': priorite.index,
+    'UserId': userId,
+    'IdMission': idMission,
+  };
 }

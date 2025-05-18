@@ -2,14 +2,16 @@ enum PrioriteTache {
   Basse,
   Moyenne,
   Haute;
-  //  Urgente;
 
+  /// Convertit un entier reçu depuis l'API vers une valeur de l'enum
   static PrioriteTache fromInt(int value) {
     return PrioriteTache.values[value];
   }
 
+  /// Pour l'envoyer en JSON sous forme de nom (optionnel)
   String toJson() => name;
 
+  /// Retourne une string plus lisible pour l'affichage
   String asString() {
     switch (this) {
       case PrioriteTache.Basse:
@@ -18,8 +20,6 @@ enum PrioriteTache {
         return "Moyenne";
       case PrioriteTache.Haute:
         return "Haute";
-      /* case PrioriteTache.Urgente:
-        return "Urgente";*/
     }
   }
 }
