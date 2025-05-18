@@ -3,6 +3,7 @@ import 'package:testfront/core/models/TacheUpdateDTO.dart';
 import 'package:testfront/core/models/tache_dto.dart';
 import 'package:testfront/core/models/response.dart';
 import 'package:testfront/core/models/tache_creation_dto.dart';
+import 'package:testfront/core/providers/mission_provider.dart';
 import 'package:testfront/core/services/tache_service.dart';
 
 class TacheProvider extends ChangeNotifier {
@@ -11,6 +12,10 @@ class TacheProvider extends ChangeNotifier {
   List<TacheDTO> _taches = [];
   bool _isLoading = false;
   String? _errorMessage;
+  Map<String, String> _fieldErrors = {};
+  Map<String, String> get fieldErrors => _fieldErrors;
+  TacheDTO? _selectedTache;
+  TacheDTO? get selectedTache => _selectedTache;
 
   List<TacheDTO> get taches => _taches;
   bool get isLoading => _isLoading;
@@ -46,6 +51,12 @@ class TacheProvider extends ChangeNotifier {
       _taches.add(response.data!);
       _isLoading = false;
       notifyListeners();
+
+      await fetchAllTaches();
+      if (_selectedTache?.missionId != null) {
+        fetchTachesByMissionId(_selectedTache!.missionId!);
+        updateEmployes(_selectedTache!.missionId!);
+      }
       return true;
     } else {
       _errorMessage = response.message ?? "Erreur lors de la création";
@@ -55,24 +66,57 @@ class TacheProvider extends ChangeNotifier {
     }
   }
 
-  // Mettre à jour une tâche
-  Future<bool> updateTache(int id, TacheUpdateDTO tacheUpdate) async {
+  Future<bool> getTacheById(int tacheId) async {
     _isLoading = true;
     _errorMessage = null;
+    _selectedTache = null;
     notifyListeners();
 
-    final response = await _service.updateTache(id, tacheUpdate);
+    final response = await _service.getTacheById(tacheId);
 
-    if (response.success && response.data != null) {
-      final index = _taches.indexWhere((t) => t.tacheId == id);
-      if (index != -1) {
-        _taches[index] = response.data!;
-      }
+    if (response.success) {
+      _selectedTache = response.data;
       _isLoading = false;
       notifyListeners();
       return true;
     } else {
-      _errorMessage = response.message ?? "Erreur lors de la mise à jour";
+      _errorMessage = response.message ?? 'Erreur inconnue';
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> updateTache(int id, TacheUpdateDTO tacheDto) async {
+    _isLoading = true;
+    _errorMessage = null;
+    _fieldErrors = {};
+    notifyListeners();
+
+    final response = await _service.updateTache(id, tacheDto);
+
+    if (response.errors != null) {
+      response.errors!.forEach((key, value) {
+        if (value is String && value.isNotEmpty) {
+          _fieldErrors[key] = value;
+          print('🛑 Champ: $key → $value');
+        }
+      });
+    }
+    if (response.success) {
+      print('✅ Tâche mise à jour avec succès.');
+      _isLoading = false;
+
+      notifyListeners();
+      await getTacheById(id);
+      if (_selectedTache?.missionId != null) {
+        fetchTachesByMissionId(_selectedTache!.missionId!);
+      }
+
+      return true;
+    } else {
+      _errorMessage = response.message ?? "Erreur inconnue";
+      print('❌ Erreur mise à jour tâche : $_errorMessage');
       _isLoading = false;
       notifyListeners();
       return false;
@@ -91,6 +135,10 @@ class TacheProvider extends ChangeNotifier {
       _taches.removeWhere((t) => t.tacheId == id);
       _isLoading = false;
       notifyListeners();
+      if (_selectedTache?.missionId != null) {
+        fetchTachesByMissionId(_selectedTache!.missionId!);
+        updateEmployes(_selectedTache!.missionId!);
+      }
       return true;
     } else {
       _errorMessage = response.message ?? "Erreur lors de la suppression";
@@ -165,5 +213,25 @@ class TacheProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  bool? _updateSuccess;
+
+  bool? get updateSuccess => _updateSuccess;
+
+  Future<void> updateEmployes(int missionId) async {
+    _isLoading = true;
+    _updateSuccess = null;
+    notifyListeners();
+
+    try {
+      final success = await _service.updateEmployesFromTaches(missionId);
+      _updateSuccess = success;
+    } catch (e) {
+      _updateSuccess = false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

@@ -15,6 +15,7 @@ class TacheDTO {
   final int? missionId;
   final String? missionTitre;
   final List<DepenseDTO>? depenses;
+  final double budget;
 
   TacheDTO({
     required this.tacheId,
@@ -29,6 +30,7 @@ class TacheDTO {
     this.missionId,
     this.missionTitre,
     this.depenses,
+    required this.budget,
   });
 
   factory TacheDTO.fromJson(Map<String, dynamic> json) {
@@ -59,6 +61,7 @@ class TacheDTO {
                 json['depenses'].map((x) => DepenseDTO.fromJson(x)),
               )
               : null,
+      budget: json['budget'],
     );
   }
 
@@ -76,6 +79,7 @@ class TacheDTO {
       'missionId': missionId,
       'missionTitre': missionTitre,
       'depenses': depenses?.map((x) => x.toJson()).toList(),
+      'budget':budget
     };
   }
 }

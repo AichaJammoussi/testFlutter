@@ -231,26 +231,15 @@ class TacheService {
         body: jsonEncode(tacheDto.toJson()),
       );
 
-      debugPrint(
-        'Réponse du backend (updateTache): ${response.statusCode} - ${response.body}',
-      );
+      debugPrint('🔁 updateTache: ${response.statusCode} - ${response.body}');
 
-      if (response.statusCode == 200) {
-        final decoded = json.decode(response.body);
-
-        return ResponseDTO<TacheDTO>.fromJson(
-          decoded,
-          (data) => TacheDTO.fromJson(data),
-        );
-      }
-
-      final decodedError = json.decode(response.body);
+      final decoded = json.decode(response.body);
       return ResponseDTO<TacheDTO>.fromJson(
-        decodedError,
+        decoded,
         (data) => TacheDTO.fromJson(data),
       );
     } catch (e) {
-      debugPrint('Erreur updateTache: $e');
+      debugPrint('❌ Erreur updateTache: $e');
       return ResponseDTO<TacheDTO>(success: false, message: "Erreur interne");
     }
   }
@@ -278,6 +267,39 @@ class TacheService {
         message: "Erreur interne",
         data: false,
       );
+    }
+  }
+
+  Future<bool> updateEmployesFromTaches(int missionId) async {
+    try {
+      final headers = await _getHeaders();
+      if (headers.isEmpty) {
+        print('❌ Headers sont vides, token probablement absent');
+        return false;
+      }
+
+      final url = '$_baseUrl${ApiConfig.missions}/$missionId/update-employes';
+      print('🔗 URL requête: $url');
+      print('🛠 Headers: $headers');
+
+      final response = await http.post(Uri.parse(url), headers: headers);
+
+      print('📬 Statut HTTP: ${response.statusCode}');
+      print('📦 Corps réponse: ${response.body}');
+
+      if (response.statusCode == 200) {
+        print('✅ Employés mis à jour pour la mission $missionId');
+        return true;
+      } else {
+        print(
+          '❌ Erreur API updateEmployes: ${response.statusCode} - ${response.body}',
+        );
+        return false;
+      }
+    } catch (e, stacktrace) {
+      print('❌ Exception updateEmployesFromTaches: $e');
+      print('🧾 Stacktrace: $stacktrace');
+      return false;
     }
   }
 

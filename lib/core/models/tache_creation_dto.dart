@@ -8,6 +8,8 @@ class TacheCreationDTO {
   final DateTime dateCreation;
   final String userId;
   final int? idMission;
+    final double budget;
+
 
   TacheCreationDTO({
     required this.titre,
@@ -16,6 +18,7 @@ class TacheCreationDTO {
     required this.dateCreation,
     required this.userId,
     this.idMission,
+    required this.budget,
   });
 
   Map<String, dynamic> toJson() => {
@@ -24,5 +27,6 @@ class TacheCreationDTO {
     'Priorite': priorite.index,
     'UserId': userId,
     'IdMission': idMission,
+    'Budget' : budget,
   };
 }

@@ -11,6 +11,7 @@ class Tache {
   final DateTime? dateRealisation;
   final String userId;
   final int? missionId;
+  final double budget;
 
   Tache({
     this.tacheId,
@@ -22,6 +23,7 @@ class Tache {
     this.dateRealisation,
     required this.userId,
     this.missionId,
+    required this.budget,
   });
 
   factory Tache.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,7 @@ class Tache {
               : null,
       userId: json['userId'],
       missionId: json['missionId'],
+      budget: json['budget'],
     );
   }
 }
