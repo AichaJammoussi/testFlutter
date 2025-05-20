@@ -1,6 +1,6 @@
 enum StatutTache {
   PLANIFIEE,
-  EN_COURS,
+  ENCOURS,
   TERMINEE,
   ANNULEE;
 
@@ -9,7 +9,7 @@ enum StatutTache {
       case 'PLANIFIEE':
         return StatutTache.PLANIFIEE;
       case 'EN_COURS':
-        return StatutTache.EN_COURS;
+        return StatutTache.ENCOURS;
       case 'TERMINEE':
         return StatutTache.TERMINEE;
       case 'ANNULEE':
@@ -29,7 +29,7 @@ enum StatutTache {
     switch (this) {
       case StatutTache.PLANIFIEE:
         return 'Planifiée';
-      case StatutTache.EN_COURS:
+      case StatutTache.ENCOURS:
         return 'En cours';
       case StatutTache.TERMINEE:
         return 'Terminée';

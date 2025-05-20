@@ -76,6 +76,33 @@ class MissionService {
     }
   }
 
+  Future<ResponseDTO<List<MissionDTO>>> fetchMissionsByUserId(
+    String userId,
+  ) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$_baseUrl${ApiConfig.missions}/by-user/$userId'),
+        headers: headers,
+      );
+
+      print('✅ HTTP Status: ${response.statusCode}');
+      print('📦 Raw Response: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return ResponseDTO<List<MissionDTO>>.fromJson(
+          json.decode(response.body),
+          (data) =>
+              List<MissionDTO>.from(data.map((x) => MissionDTO.fromJson(x))),
+        );
+      }
+
+      return _handleError('Erreur HTTP: ${response.statusCode}');
+    } catch (e) {
+      return _handleError(e);
+    }
+  }
+
   // ✅ POST Create Mission
   Future<ResponseDTO<MissionDTO>> createMission(
     MissionCreationDTO missionDto,
@@ -128,7 +155,7 @@ class MissionService {
     }
   }
 
-  Future<ResponseDTO<List<UserDTO>>> fetchEmployesDisponibles(
+  /* Future<ResponseDTO<List<UserDTO>>> fetchEmployesDisponibles(
     DateTime dateDebut,
     DateTime dateFin,
   ) async {
@@ -180,7 +207,7 @@ class MissionService {
         data: [],
       );
     }
-  }
+  }*/
 
   Future<ResponseDTO<List<VehiculeMissionDTO>>> fetchVehiculesDisponibles(
     DateTime dateDebut,
@@ -335,6 +362,4 @@ class MissionService {
       );
     }
   }
-
- 
 }

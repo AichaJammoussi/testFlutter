@@ -52,8 +52,8 @@ dependencies:
   mime_type: 1.0.1 
   google_sign_in: ^6.1.5
   flutter_side_menu: ^0.5.41
-
-
+  easy_sidemenu: ^0.6.1
+  animations: ^2.0.2
 
 
   # The following adds the Cupertino Icons font to your application.

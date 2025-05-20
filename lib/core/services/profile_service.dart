@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as _client;
 import 'package:http_parser/http_parser.dart';
 import 'package:mime/mime.dart';
+import 'package:testfront/core/models/UserDto.dart';
 import 'package:testfront/core/models/change_email.dart';
 import 'package:testfront/core/models/change_password.dart';
 import 'package:testfront/core/models/confirmEmail_change.dart';
@@ -54,6 +55,8 @@ class ProfileService {
       return ResponseDTO(success: false, message: 'Erreur de connexion: $e');
     }
   }
+
+ 
 
   // 2. Mettre à jour le profil
   Future<ResponseDTO> updateProfile(UpdateProfileDto model) async {

@@ -10,8 +10,6 @@ class MissionProvider with ChangeNotifier {
 
   List<MissionDTO> _missions = [];
   List<MissionDTO> get missions => _missions;
-  List<UserDTO> _employesDisponibles = [];
-  List<UserDTO> get employesDisponibles => _employesDisponibles;
 
   List<VehiculeMissionDTO> _vehiculesDisponibles = [];
   List<VehiculeMissionDTO> get vehiculesDisponibles => _vehiculesDisponibles;
@@ -70,29 +68,6 @@ class MissionProvider with ChangeNotifier {
     }
   }
 
-  Future<void> loadEmployesDisponibles(
-    DateTime dateDebut,
-    DateTime dateFin,
-  ) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    final response = await _missionService.fetchEmployesDisponibles(
-      dateDebut,
-      dateFin,
-    );
-
-    if (response.success) {
-      _employesDisponibles = response.data ?? [];
-    } else {
-      _error = response.message;
-    }
-
-    _isLoading = false;
-    notifyListeners();
-  }
-
   Future<void> loadVehiculesDisponibles(
     DateTime dateDebut,
     DateTime dateFin,
@@ -136,20 +111,38 @@ class MissionProvider with ChangeNotifier {
       return false;
     }
   }
+Future<void> loadMissionsByUserId(String userId) async {
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
 
-  Future<bool> updateMission(int id, MissionCreationDTO missionDto) async {
-    _isLoading = true;
-    _error = null;
+  try {
+    final response = await _missionService.fetchMissionsByUserId(userId);
+
+    if (response.success) {
+      _missions = response.data ?? [];
+    } else {
+      _error = response.message;
+    }
+  } catch (e) {
+    _error = 'Erreur lors du chargement des missions: $e';
+  } finally {
+    _isLoading = false;
     notifyListeners();
+  }
+}
 
+Future<bool> updateMission(int id, MissionCreationDTO missionDto) async {
+  _isLoading = true;
+  _error = null;
+  notifyListeners();
+
+  try {
     final response = await _missionService.updateMission(id, missionDto);
 
     if (response.success) {
       print('✅ Mission mise à jour avec succès.');
-      _isLoading = false;
-      notifyListeners();
       await loadMissions(); // Recharge les missions
-
       return true;
     } else {
       _error = response.message;
@@ -159,13 +152,19 @@ class MissionProvider with ChangeNotifier {
           print('🛑 Champ: $key → $value');
         });
       }
-      _isLoading = false;
-      notifyListeners();
       return false;
     }
+  } catch (e) {
+    _error = 'Erreur lors de la mise à jour de la mission: $e';
+    print(_error);
+    return false;
+  } finally {
+    _isLoading = false;
+    notifyListeners();
   }
+}
 
- 
+
   void clearErrors() {
     _error = null;
     _fieldErrors = {};

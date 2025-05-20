@@ -933,8 +933,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
     );
   }
 }
-*/
-/*import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -3051,7 +3050,8 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
     );
   }
 }
-*/
+
+/*
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -4132,6 +4132,1583 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                       ),
                     ),
           ),
+        ],
+      ),
+    );
+  }
+}*/ */
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:testfront/core/models/PrioriteTache.dart';
+import 'package:testfront/core/models/StatusTache.dart';
+import 'package:testfront/core/models/TacheUpdateDTO.dart';
+import 'package:testfront/core/models/UserDto.dart';
+import 'package:testfront/core/models/tache_creation_dto.dart';
+import 'package:testfront/core/models/tache_dto.dart';
+import 'package:testfront/core/providers/mission_provider.dart';
+import 'package:testfront/core/providers/tache_provider.dart';
+
+class TachesParMissionScreen extends StatefulWidget {
+  final int missionId;
+
+  const TachesParMissionScreen({Key? key, required this.missionId})
+    : super(key: key);
+
+  @override
+  _TachesParMissionScreenState createState() => _TachesParMissionScreenState();
+}
+
+class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  int _currentPage = 1;
+  int _itemsPerPage = 2;
+
+  // Variables pour les filtres et tris
+  StatutTache? _selectedStatutFilter;
+  PrioriteTache? _selectedPrioriteFilter;
+  bool _sortByDateAsc = true;
+  bool _ascending = true;
+  bool _sortAlphabetically = false;
+
+  // Styles constants
+  final _dialogButtonStyle = ElevatedButton.styleFrom(
+    backgroundColor: const Color(0xFF2A5298),
+    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+  );
+
+  final _dialogDecoration = BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(16),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withOpacity(0.1),
+        blurRadius: 10,
+        spreadRadius: 2,
+      ),
+    ],
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<TacheProvider>().fetchTachesByMissionId(widget.missionId);
+
+      // Charger les employés disponibles
+      _loadEmployesDisponibles();
+    });
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
+  }
+
+  Future<void> _loadEmployesDisponibles() async {
+    final mission = await context.read<MissionProvider>().getMissionById(
+      widget.missionId,
+    );
+    if (mission != null &&
+        mission.dateDebutPrevue != null &&
+        mission.dateFinPrevue != null) {
+      await context.read<TacheProvider>().loadEmployesDisponibles(
+        mission.dateDebutPrevue!,
+        mission.dateFinPrevue!,
+        missionId: widget.missionId,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('dd/MM/yyyy – HH:mm').format(date);
+  }
+
+  String _getPrioriteTacheText(PrioriteTache? priorite) {
+    switch (priorite) {
+      case PrioriteTache.Basse:
+        return 'Basse';
+      case PrioriteTache.Moyenne:
+        return 'Moyenne';
+      case PrioriteTache.Haute:
+        return 'Haute';
+      default:
+        return 'Inconnue';
+    }
+  }
+
+  String _getStatutTacheText(StatutTache? statut) {
+    switch (statut) {
+      case StatutTache.PLANIFIEE:
+        return 'Planifié';
+      case StatutTache.ENCOURS:
+        return 'En cours';
+      case StatutTache.TERMINEE:
+        return 'Terminée';
+      case StatutTache.ANNULEE:
+        return 'Annulée';
+      default:
+        return 'Inconnu';
+    }
+  }
+
+  Color _getPrioriteColor(PrioriteTache? priorite) {
+    switch (priorite) {
+      case PrioriteTache.Basse:
+        return Colors.green;
+      case PrioriteTache.Moyenne:
+        return Colors.orange;
+      case PrioriteTache.Haute:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _getStatutColor(StatutTache? statut) {
+    switch (statut) {
+      case StatutTache.PLANIFIEE:
+        return Colors.blue;
+      case StatutTache.ENCOURS:
+        return Colors.orange;
+      case StatutTache.TERMINEE:
+        return Colors.green;
+      case StatutTache.ANNULEE:
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatutIcon(StatutTache? statut) {
+    switch (statut) {
+      case StatutTache.PLANIFIEE:
+        return Icons.schedule;
+      case StatutTache.ENCOURS:
+        return Icons.timelapse;
+      case StatutTache.TERMINEE:
+        return Icons.check_circle;
+      case StatutTache.ANNULEE:
+        return Icons.cancel;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  String _getNomEmploye(String? employeId) {
+    final employes = context.read<TacheProvider>().employesDisponibles;
+    final user = employes.firstWhere(
+      (e) => e.id == employeId,
+      orElse: () => UserDTO(id: '', nom: 'Inconnu', prenom: '', userName: ""),
+    );
+    return '${user.prenom} ${user.nom}';
+  }
+
+  Future<void> _handleAddTache(TacheCreationDTO dto) async {
+    final tacheProvider = context.read<TacheProvider>();
+    await tacheProvider.createTache(dto);
+    await tacheProvider.fetchTachesByMissionId(widget.missionId);
+    await tacheProvider.updateEmployes(widget.missionId);
+  }
+
+  Future<void> _handleEditTache(TacheDTO tache, TacheUpdateDTO update) async {
+    final tacheProvider = context.read<TacheProvider>();
+    await tacheProvider.updateTache(tache.tacheId, update);
+    await tacheProvider.fetchTachesByMissionId(widget.missionId);
+    await tacheProvider.updateEmployes(widget.missionId);
+  }
+
+  Future<void> _handleDeleteTache(int idTache) async {
+    final tacheProvider = context.read<TacheProvider>();
+    await tacheProvider.deleteTache(idTache);
+    await tacheProvider.fetchTachesByMissionId(widget.missionId);
+    await tacheProvider.updateEmployes(widget.missionId);
+  }
+
+  Widget _buildDetailCard({
+    required IconData icon,
+    required String title,
+    required String content,
+  }) {
+    return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 20, color: const Color(0xFF2A5298)),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(content, style: const TextStyle(fontSize: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(StatutTache? statut) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: _getStatutColor(statut).withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _getStatutColor(statut), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _getStatutIcon(statut),
+            size: 18,
+            color: _getStatutColor(statut),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _getStatutTacheText(statut),
+            style: TextStyle(
+              color: _getStatutColor(statut),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetaDataCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    Color? color,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: Colors.grey.shade200, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Icon(icon, size: 18, color: color ?? const Color(0xFF2A5298)),
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: color ?? Colors.black,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteDialog(int idTache) {
+    showDialog<bool>(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            backgroundColor: Colors.transparent,
+            child: Container(
+              decoration: _dialogDecoration,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 48,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Confirmer la suppression',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Voulez-vous vraiment supprimer cette tâche ?',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Annuler'),
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        style: _dialogButtonStyle.copyWith(
+                          backgroundColor: MaterialStateProperty.all(
+                            Colors.red,
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.delete, size: 18, color: Colors.white),
+                            SizedBox(width: 8),
+                            Text(
+                              'Supprimer',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+    ).then((confirmed) async {
+      if (confirmed == true) {
+        final tacheProvider = context.read<TacheProvider>();
+        final success = await tacheProvider.deleteTache(idTache);
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tâche supprimée avec succès')),
+          );
+          // Recharger les tâches après suppression
+          await tacheProvider.fetchTachesByMissionId(widget.missionId);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Erreur lors de la suppression')),
+          );
+        }
+      }
+    });
+  }
+
+  void _showTacheDetails(BuildContext context, TacheDTO tache) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            backgroundColor: Colors.transparent,
+            child: Container(
+              decoration: _dialogDecoration,
+              padding: const EdgeInsets.all(24),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tache.titre,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2A5298),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Section Principale
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Colonne de gauche (Informations principales)
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildDetailCard(
+                                icon: Icons.description,
+                                title: 'Description',
+                                content:
+                                    tache.description ?? 'Aucune description',
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              _buildDetailCard(
+                                icon: Icons.calendar_today,
+                                title: 'Date de création',
+                                content: _formatDate(tache.dateCreation),
+                              ),
+
+                              if (tache.dateRealisation != null) ...[
+                                const SizedBox(height: 12),
+                                _buildDetailCard(
+                                  icon: Icons.event_available,
+                                  title: 'Date de réalisation',
+                                  content: _formatDate(tache.dateRealisation!),
+                                ),
+                              ],
+
+                              const SizedBox(height: 12),
+
+                              _buildDetailCard(
+                                icon: Icons.attach_money,
+                                title: 'Budget',
+                                content:
+                                    '${tache.budget.toStringAsFixed(2)} Dt',
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Colonne de droite (Métadonnées)
+                        const SizedBox(width: 16),
+
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            children: [
+                              _buildStatusBadge(tache.statutTache),
+                              const SizedBox(height: 16),
+
+                              _buildMetaDataCard(
+                                icon: Icons.priority_high,
+                                title: 'Priorité',
+                                value: _getPrioriteTacheText(tache.priorite),
+                                color: _getPrioriteColor(tache.priorite),
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              _buildMetaDataCard(
+                                icon: Icons.person,
+                                title: 'Assignée à',
+                                value: _getNomEmploye(tache.userId),
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              _buildMetaDataCard(
+                                icon: Icons.date_range,
+                                title: 'Date création',
+                                value: DateFormat(
+                                  'dd/MM/yyyy – HH:mm',
+                                ).format(tache.dateCreation),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: _dialogButtonStyle.copyWith(
+                          minimumSize: MaterialStateProperty.all(
+                            const Size(150, 50),
+                          ),
+                        ),
+                        child: const Text(
+                          'Fermer',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
+  }
+
+  Future<void> _showAddTacheDialog(BuildContext context) async {
+    final _formKey = GlobalKey<FormState>();
+    final _titreController = TextEditingController();
+    final _descriptionController = TextEditingController();
+    final _budgetController = TextEditingController();
+
+    StatutTache selectedStatut = StatutTache.PLANIFIEE;
+    PrioriteTache selectedPriorite = PrioriteTache.Moyenne;
+    String? selectedUserId;
+
+    final tacheProvider = context.read<TacheProvider>();
+    final missionProvider = context.read<MissionProvider>();
+    final mission = await missionProvider.getMissionById(widget.missionId);
+    List<UserDTO> employesDisponibles = tacheProvider.employesDisponibles;
+
+    bool isLoading = false;
+    String? error;
+    Map<String, String> _fieldErrors = {};
+
+    await showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder: (context, setState) {
+              final isMobile = MediaQuery.of(context).size.width < 600;
+
+              return Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                backgroundColor: Colors.transparent,
+                child: Container(
+                  width:
+                      isMobile
+                          ? double.infinity
+                          : 400, // limite largeur sur grand écran
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 12,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Nouvelle Tâche',
+                            style: GoogleFonts.poppins(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF2A5298),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Titre
+                          TextFormField(
+                            controller: _titreController,
+                            decoration: InputDecoration(
+                              labelText: 'Titre *',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['titre'],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Description
+                          TextFormField(
+                            controller: _descriptionController,
+                            decoration: InputDecoration(
+                              labelText: 'Description',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['description'],
+                            ),
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Budget
+                          TextFormField(
+                            controller: _budgetController,
+                            decoration: InputDecoration(
+                              labelText: 'Budget *',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['budget'],
+                              prefixIcon: const Icon(Icons.attach_money),
+                              suffixText: 'DT',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,2}'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Priorité
+                          DropdownButtonFormField<PrioriteTache>(
+                            value: selectedPriorite,
+                            decoration: InputDecoration(
+                              labelText: 'Priorité',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            items:
+                                PrioriteTache.values.map((p) {
+                                  return DropdownMenuItem(
+                                    value: p,
+                                    child: Text(_getPrioriteTacheText(p)),
+                                  );
+                                }).toList(),
+                            onChanged: (val) {
+                              if (val != null)
+                                setState(() => selectedPriorite = val);
+                            },
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Employé assigné
+                          if (isLoading)
+                            const Center(child: CircularProgressIndicator())
+                          else if (error != null)
+                            Text(
+                              error!,
+                              style: const TextStyle(color: Colors.red),
+                            )
+                          else
+                            DropdownButtonFormField<String>(
+                              value: selectedUserId,
+                              decoration: InputDecoration(
+                                labelText: 'Employé assigné *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                errorText: _fieldErrors['user'],
+                              ),
+                              items:
+                                  employesDisponibles.map((e) {
+                                    return DropdownMenuItem(
+                                      value: e.id,
+                                      child: Text('${e.prenom} ${e.nom}'),
+                                    );
+                                  }).toList(),
+                              onChanged:
+                                  (val) => setState(() => selectedUserId = val),
+                            ),
+                          const SizedBox(height: 16),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2A5298),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor: Colors.blue.withOpacity(0.3),
+                                  ),
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text(
+                                    'Annuler',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2A5298),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor: Colors.blue.withOpacity(0.3),
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _fieldErrors = {};
+
+                                      if (_titreController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['titre'] =
+                                            'Champ obligatoire';
+                                      }
+                                      if (_descriptionController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['description'] =
+                                            'Champ obligatoire';
+                                      }
+                                      if (_budgetController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['budget'] =
+                                            'Champ obligatoire';
+                                      } else if (double.tryParse(
+                                            _budgetController.text,
+                                          ) ==
+                                          null) {
+                                        _fieldErrors['budget'] =
+                                            'Nombre invalide';
+                                      } else if (double.parse(
+                                            _budgetController.text,
+                                          ) <=
+                                          0) {
+                                        _fieldErrors['budget'] =
+                                            'Le budget doit être positif';
+                                      }
+                                      if (selectedUserId == null ||
+                                          selectedUserId!.isEmpty) {
+                                        _fieldErrors['user'] =
+                                            'Veuillez choisir un employé';
+                                      }
+
+                                      if (_fieldErrors.isEmpty) {
+                                        final newTache = TacheCreationDTO(
+                                          titre: _titreController.text.trim(),
+                                          description:
+                                              _descriptionController.text
+                                                  .trim(),
+                                          priorite: selectedPriorite,
+                                          dateCreation: DateTime.now(),
+                                          userId: selectedUserId!,
+                                          idMission: widget.missionId,
+                                          budget: double.parse(
+                                            _budgetController.text.trim(),
+                                          ),
+                                        );
+                                        _handleAddTache(newTache);
+                                        Navigator.pop(context);
+                                        tacheProvider.loadDepensesMission(
+                                          widget.missionId,
+                                        );
+                                        tacheProvider.updateEmployes(
+                                          widget.missionId,
+                                        );
+                                        missionProvider.loadMissions();
+                                      }
+                                    });
+                                  },
+
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.save,
+                                        size: 18,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Ajouter',
+                                        style: GoogleFonts.poppins(
+                                          color:
+                                              Colors
+                                                  .white, // important si le bouton est foncé
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+    );
+  }
+
+  Future<void> _showUpdateTacheDialog(
+    BuildContext context,
+    TacheDTO tache,
+  ) async {
+    final _formKey = GlobalKey<FormState>();
+    final _titreController = TextEditingController(text: tache.titre);
+    final _descriptionController = TextEditingController(
+      text: tache.description ?? '',
+    );
+    final _budgetController = TextEditingController(
+      text: tache.budget.toString(),
+    );
+
+    StatutTache selectedStatut = tache.statutTache ?? StatutTache.PLANIFIEE;
+    PrioriteTache selectedPriorite = tache.priorite ?? PrioriteTache.Moyenne;
+    String? selectedUserId = tache.userId;
+
+    final tacheProvider = context.read<TacheProvider>();
+    List<UserDTO> employesDisponibles = tacheProvider.employesDisponibles;
+
+    bool isLoading = false;
+    String? error;
+    Map<String, String> _fieldErrors = {};
+    final missionProvider = context.read<MissionProvider>();
+    final mission = await missionProvider.getMissionById(widget.missionId);
+    await showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder: (context, setState) {
+              final isMobile = MediaQuery.of(context).size.width < 600;
+
+              return Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                backgroundColor: Colors.transparent,
+                child: Container(
+                  width: isMobile ? double.infinity : 400,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 12,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Modifier Tâche',
+                            style: GoogleFonts.poppins(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF2A5298),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+
+                          TextFormField(
+                            controller: _titreController,
+                            decoration: InputDecoration(
+                              labelText: 'Titre *',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['titre'],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          TextFormField(
+                            controller: _descriptionController,
+                            decoration: InputDecoration(
+                              labelText: 'Description',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['description'],
+                            ),
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 16),
+
+                          TextFormField(
+                            controller: _budgetController,
+                            decoration: InputDecoration(
+                              labelText: 'Budget *',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['budget'],
+                              prefixIcon: const Icon(Icons.attach_money),
+                              suffixText: 'DT',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,2}'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          DropdownButtonFormField<PrioriteTache>(
+                            value: selectedPriorite,
+                            decoration: InputDecoration(
+                              labelText: 'Priorité',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            items:
+                                PrioriteTache.values.map((p) {
+                                  return DropdownMenuItem(
+                                    value: p,
+                                    child: Text(_getPrioriteTacheText(p)),
+                                  );
+                                }).toList(),
+                            onChanged: (val) {
+                              if (val != null)
+                                setState(() => selectedPriorite = val);
+                            },
+                          ),
+                          const SizedBox(height: 16),
+
+                          const SizedBox(height: 16),
+
+                          if (isLoading)
+                            const Center(child: CircularProgressIndicator())
+                          else if (error != null)
+                            Text(
+                              error!,
+                              style: const TextStyle(color: Colors.red),
+                            )
+                          else
+                            DropdownButtonFormField<String>(
+                              value: selectedUserId,
+                              decoration: InputDecoration(
+                                labelText: 'Employé assigné *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                errorText: _fieldErrors['user'],
+                              ),
+                              items:
+                                  employesDisponibles.map((e) {
+                                    return DropdownMenuItem(
+                                      value: e.id,
+                                      child: Text('${e.prenom} ${e.nom}'),
+                                    );
+                                  }).toList(),
+                              onChanged:
+                                  (val) => setState(() => selectedUserId = val),
+                            ),
+                          const SizedBox(height: 24),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2A5298),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text(
+                                    'Annuler',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white, // texte blanc
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2A5298),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor: Colors.blue.withOpacity(0.3),
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _fieldErrors = {};
+                                      if (_titreController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['titre'] =
+                                            'Champ obligatoire';
+                                      }
+                                      if (_descriptionController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['description'] =
+                                            'Champ obligatoire';
+                                      }
+                                      if (_budgetController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['budget'] =
+                                            'Champ obligatoire';
+                                      } else if (double.tryParse(
+                                            _budgetController.text,
+                                          ) ==
+                                          null) {
+                                        _fieldErrors['budget'] =
+                                            'Nombre invalide';
+                                      } else if (double.parse(
+                                            _budgetController.text,
+                                          ) <=
+                                          0) {
+                                        _fieldErrors['budget'] =
+                                            'Le budget doit être positif';
+                                      }
+                                      if (selectedUserId == null ||
+                                          selectedUserId!.isEmpty) {
+                                        _fieldErrors['user'] =
+                                            'Veuillez choisir un employé';
+                                      }
+
+                                      if (_fieldErrors.isEmpty) {
+                                        final updatedTache = TacheUpdateDTO(
+                                          titre: _titreController.text.trim(),
+                                          description:
+                                              _descriptionController.text
+                                                  .trim(),
+                                          priorite: selectedPriorite,
+                                          statut: selectedStatut,
+                                          userId: selectedUserId!,
+                                          budget: double.parse(
+                                            _budgetController.text.trim(),
+                                          ),
+                                        );
+                                        _handleEditTache(tache, updatedTache);
+                                        Navigator.pop(context);
+                                        tacheProvider.loadDepensesMission(
+                                          widget.missionId,
+                                        );
+                                        tacheProvider.updateEmployes(
+                                          widget.missionId,
+                                        );
+                                        missionProvider.loadMissions();
+                                      }
+                                    });
+                                  },
+                                  child: Text(
+                                    'Mettre à jour',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tacheProvider = context.watch<TacheProvider>();
+    final taches = tacheProvider.taches;
+
+    // Filtrage des tâches
+    final filteredTaches =
+        taches
+            .where(
+              (tache) =>
+                  tache.titre.toLowerCase().contains(_searchQuery) ||
+                  (tache.description?.toLowerCase().contains(_searchQuery) ??
+                      false),
+            )
+            .where(
+              (tache) =>
+                  _selectedStatutFilter == null ||
+                  tache.statutTache == _selectedStatutFilter,
+            )
+            .where(
+              (tache) =>
+                  _selectedPrioriteFilter == null ||
+                  tache.priorite == _selectedPrioriteFilter,
+            )
+            .toList();
+
+    // Tri principal par statut
+    filteredTaches.sort(
+      (a, b) =>
+          (a.statutTache?.index ?? 0).compareTo(b.statutTache?.index ?? 0),
+    );
+
+    // Ensuite par priorité
+    filteredTaches.sort(
+      (a, b) => (b.priorite?.index ?? 0).compareTo(a.priorite?.index ?? 0),
+    );
+
+    // Tri optionnel par titre ou date
+    if (_sortAlphabetically) {
+      filteredTaches.sort((a, b) {
+        final titleComparison = a.titre.compareTo(b.titre);
+        return _ascending ? titleComparison : -titleComparison;
+      });
+    } else {
+      filteredTaches.sort((a, b) {
+        final dateComparison = a.dateCreation.compareTo(b.dateCreation);
+        return _sortByDateAsc ? dateComparison : -dateComparison;
+      });
+    }
+
+    // Pagination
+    final startIndex = (_currentPage - 1) * _itemsPerPage;
+    final endIndex = startIndex + _itemsPerPage;
+    final paginatedTaches = filteredTaches.sublist(
+      startIndex,
+      endIndex < filteredTaches.length ? endIndex : filteredTaches.length,
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Tâches de la mission #${widget.missionId}'),
+        centerTitle: true,
+        backgroundColor: const Color(0xFF2A5298),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () {
+              context.read<TacheProvider>().fetchTachesByMissionId(
+                widget.missionId,
+              );
+              _loadEmployesDisponibles();
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // Ligne supérieure avec recherche et bouton Ajouter
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Champ de recherche avec largeur fixe
+                    SizedBox(
+                      width: 300,
+                      child: TextField(
+                        controller: _searchController,
+                        style: const TextStyle(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'Rechercher',
+                          labelStyle: const TextStyle(fontSize: 16),
+                          prefixIcon: const Icon(Icons.search),
+                          border: const OutlineInputBorder(),
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    // Bouton Ajouter avec icône et texte
+                    ElevatedButton.icon(
+                      onPressed: () => _showAddTacheDialog(context),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        backgroundColor: const Color(0xFF2A5298),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.add,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        "Ajouter Tâche",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Filtres et tris
+                Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<StatutTache?>(
+                        value: _selectedStatutFilter,
+                        decoration: const InputDecoration(
+                          labelText: 'Filtrer par statut',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          const DropdownMenuItem<StatutTache?>(
+                            value: null,
+                            child: Text('Tous les statuts'),
+                          ),
+                          ...StatutTache.values.map((statut) {
+                            return DropdownMenuItem<StatutTache?>(
+                              value: statut,
+                              child: Text(_getStatutTacheText(statut)),
+                            );
+                          }).toList(),
+                        ],
+                        onChanged: (StatutTache? value) {
+                          setState(() {
+                            _selectedStatutFilter = value;
+                            _currentPage = 1;
+                          });
+                        },
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: DropdownButtonFormField<PrioriteTache?>(
+                        value: _selectedPrioriteFilter,
+                        decoration: const InputDecoration(
+                          labelText: 'Filtrer par priorité',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: [
+                          const DropdownMenuItem<PrioriteTache?>(
+                            value: null,
+                            child: Text('Toutes les priorités'),
+                          ),
+                          ...PrioriteTache.values.map((priorite) {
+                            return DropdownMenuItem<PrioriteTache?>(
+                              value: priorite,
+                              child: Text(_getPrioriteTacheText(priorite)),
+                            );
+                          }).toList(),
+                        ],
+                        onChanged: (PrioriteTache? value) {
+                          setState(() {
+                            _selectedPrioriteFilter = value;
+                            _currentPage = 1;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        Icons.sort_by_alpha,
+                        color:
+                            _sortAlphabetically
+                                ? const Color(0xFF2A5298)
+                                : Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _sortAlphabetically = true;
+                          _ascending = !_ascending;
+                          _currentPage = 1;
+                        });
+                      },
+                    ),
+                    IconButton(
+                      icon: Icon(
+                        Icons.date_range,
+                        color:
+                            !_sortAlphabetically
+                                ? const Color(0xFF2A5298)
+                                : Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _sortAlphabetically = false;
+                          _sortByDateAsc = !_sortByDateAsc;
+                          _currentPage = 1;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child:
+                tacheProvider.isLoading
+                    ? const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF2A5298),
+                        ),
+                      ),
+                    )
+                    : filteredTaches.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.task,
+                            size: 64,
+                            color: Color(0xFF2A5298),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'Aucune tâche trouvée',
+                            style: TextStyle(fontSize: 18, color: Colors.grey),
+                          ),
+                          if (_searchQuery.isNotEmpty ||
+                              _selectedStatutFilter != null ||
+                              _selectedPrioriteFilter != null)
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _searchController.clear();
+                                  _selectedStatutFilter = null;
+                                  _selectedPrioriteFilter = null;
+                                });
+                              },
+                              child: const Text('Réinitialiser les filtres'),
+                            ),
+                        ],
+                      ),
+                    )
+                    : ListView.builder(
+                      itemCount: paginatedTaches.length,
+                      itemBuilder: (context, index) {
+                        final tache = paginatedTaches[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(12),
+                            onTap: () => _showTacheDetails(context, tache),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          tache.titre,
+                                          style: const TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF2A5298),
+                                          ),
+                                        ),
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.edit),
+                                            color: Colors.blue,
+                                            onPressed:
+                                                () => _showUpdateTacheDialog(
+                                                  context,
+                                                  tache,
+                                                ),
+                                          ),
+                                          IconButton(
+                                            icon: const Icon(
+                                              Icons.delete,
+                                              color: Colors.red,
+                                            ),
+                                            onPressed:
+                                                () => _showDeleteDialog(
+                                                  tache.tacheId,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  if (tache.description != null &&
+                                      tache.description!.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 8),
+                                      child: Text(
+                                        tache.description!,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  Row(
+                                    children: [
+                                      Chip(
+                                        label: Text(
+                                          _getStatutTacheText(
+                                            tache.statutTache,
+                                          ),
+                                          style: TextStyle(
+                                            color: _getStatutColor(
+                                              tache.statutTache,
+                                            ),
+                                          ),
+                                        ),
+                                        backgroundColor: _getStatutColor(
+                                          tache.statutTache,
+                                        ).withOpacity(0.1),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Chip(
+                                        label: Text(
+                                          _getPrioriteTacheText(tache.priorite),
+                                          style: TextStyle(
+                                            color: _getPrioriteColor(
+                                              tache.priorite,
+                                            ),
+                                          ),
+                                        ),
+                                        backgroundColor: _getPrioriteColor(
+                                          tache.priorite,
+                                        ).withOpacity(0.1),
+                                      ),
+                                      const Spacer(),
+                                      Text(
+                                        _formatDate(tache.dateCreation),
+                                        style: TextStyle(
+                                          color: Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+          ),
+          if (filteredTaches.length > _itemsPerPage)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed:
+                        _currentPage > 1
+                            ? () {
+                              setState(() {
+                                _currentPage--;
+                              });
+                            }
+                            : null,
+                  ),
+                  Text(
+                    'Page $_currentPage sur ${(filteredTaches.length / _itemsPerPage).ceil()}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed:
+                        _currentPage <
+                                (filteredTaches.length / _itemsPerPage).ceil()
+                            ? () {
+                              setState(() {
+                                _currentPage++;
+                              });
+                            }
+                            : null,
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );

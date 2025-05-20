@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:testfront/core/models/StatusTache.dart';
 import 'package:testfront/core/models/TacheUpdateDTO.dart';
+import 'package:testfront/core/models/UserDto.dart';
 import 'package:testfront/core/models/tache_dto.dart';
 import 'package:testfront/core/models/response.dart';
 import 'package:testfront/core/models/tache_creation_dto.dart';
@@ -17,6 +19,8 @@ class TacheProvider extends ChangeNotifier {
   TacheDTO? _selectedTache;
   TacheDTO? get selectedTache => _selectedTache;
 
+  String? _error;
+  String? get error => _error;
   List<TacheDTO> get taches => _taches;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -149,28 +153,35 @@ class TacheProvider extends ChangeNotifier {
   }
 
   // Mettre à jour le statut d’une tâche
-  Future<bool> updateStatutTache(int id, String statut) async {
+  Future<bool> updateStatutTache(int tacheId, StatutTache newStatut) async {
     _isLoading = true;
-    _errorMessage = null;
+    _error = null;
     notifyListeners();
 
-    final response = await _service.updateStatutTache(id, statut);
-
-    if (response.success && response.data != null) {
-      final index = _taches.indexWhere((t) => t.tacheId == id);
-      if (index != -1) {
-        _taches[index] = response.data!;
+    try {
+      final response = await _service.updateStatutTache(
+        tacheId,
+        newStatut,
+      );
+      if (response.success && response.data != null) {
+        // Met à jour la tâche dans la liste locale
+        final index = _taches.indexWhere((t) => t.tacheId == tacheId);
+        if (index != -1) {
+          _taches[index] = response.data!;
+        }
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        _error = response.message;
       }
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } else {
-      _errorMessage =
-          response.message ?? "Erreur lors de la mise à jour du statut";
-      _isLoading = false;
-      notifyListeners();
-      return false;
+    } catch (e) {
+      _error = e.toString();
     }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
 
   // Marquer tâche comme terminée
@@ -233,5 +244,51 @@ class TacheProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  List<UserDTO> employesDisponibles = [];
+
+  Future<void> loadEmployesDisponibles(
+    DateTime dateDebut,
+    DateTime dateFin, {
+    int? missionId,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final list = await _service.fetchEmployesDisponibles(
+        dateDebut,
+        dateFin,
+        missionId: missionId,
+      );
+      print('Provider - employesDisponibles reçus : ${list.length}');
+      employesDisponibles = list;
+    } catch (e) {
+      print('Erreur lors du chargement des employés disponibles : $e');
+      employesDisponibles = [];
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  double? get depenses => _depenses;
+  double? _depenses;
+
+  Future<void> loadDepensesMission(int missionId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    final response = await _service.fetchDepensesMission(missionId);
+    if (response.success) {
+      _depenses = response.data;
+    } else {
+      _error = response.message;
+    }
+
+    _isLoading = false;
+    notifyListeners();
   }
 }

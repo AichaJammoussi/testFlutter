@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:testfront/core/config/api_config.dart';
+import 'package:testfront/core/models/StatusTache.dart';
 import 'package:testfront/core/models/TacheUpdateDTO.dart';
 import 'package:testfront/core/models/UserDto.dart';
 import 'package:testfront/core/models/auth_storage.dart';
@@ -244,6 +246,61 @@ class TacheService {
     }
   }
 
+  Future<ResponseDTO<TacheDTO>> updateStatutTache(
+    int tacheId,
+    StatutTache newStatut,
+  ) async {
+    try {
+      final headers = await _getHeaders();
+      final url = Uri.parse('$_baseUrl${ApiConfig.taches}/$tacheId/statut');
+
+      print('🔄 Mise à jour statut tâche → $url');
+      print(
+        '📄 Corps de la requête : ${json.encode({'newStatut': newStatut.name})}',
+      );
+
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: jsonEncode(newStatut.index),
+      );
+
+      print('📥 Statut HTTP: ${response.statusCode}');
+      print('📥 Corps de la réponse: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        return ResponseDTO<TacheDTO>.fromJson(
+          decoded,
+          (data) => TacheDTO.fromJson(data),
+        );
+      } else {
+        final decoded =
+            response.body.isNotEmpty ? json.decode(response.body) : {};
+        return ResponseDTO<TacheDTO>(
+          success: false,
+          message:
+              decoded['message'] ?? 'Erreur lors de la mise à jour du statut',
+          errors:
+              decoded['errors'] != null
+                  ? Map<String, String>.from(decoded['errors'])
+                  : {"http": "Code HTTP ${response.statusCode}"},
+          data: null,
+        );
+      }
+    } catch (e, stackTrace) {
+      print('💥 Exception update statut tâche: $e');
+      print('📌 StackTrace: $stackTrace');
+
+      return ResponseDTO<TacheDTO>(
+        success: false,
+        message: 'Exception: ${e.toString()}',
+        errors: {"exception": e.toString()},
+        data: null,
+      );
+    }
+  }
+
   Future<ResponseDTO<bool>> deleteTache(int tacheId) async {
     try {
       final headers = await _getHeaders();
@@ -303,39 +360,6 @@ class TacheService {
     }
   }
 
-  Future<ResponseDTO<TacheDTO>> updateStatutTache(
-    int tacheId,
-    String newStatut,
-  ) async {
-    try {
-      final headers = await _getHeaders();
-      final body = json.encode({'statut': newStatut});
-
-      final response = await http.put(
-        Uri.parse('$_baseUrl${ApiConfig.taches}/$tacheId/statut'),
-        headers: headers,
-        body: body,
-      );
-
-      debugPrint(
-        'Réponse du backend (updateStatutTache): ${response.statusCode} - ${response.body}',
-      );
-
-      final decoded = json.decode(response.body);
-      return ResponseDTO<TacheDTO>.fromJson(
-        decoded,
-        (data) => TacheDTO.fromJson(data),
-      );
-    } catch (e) {
-      debugPrint('Erreur updateStatutTache: $e');
-      return ResponseDTO<TacheDTO>(
-        success: false,
-        message: "Erreur interne",
-        data: null,
-      );
-    }
-  }
-
   Future<ResponseDTO<TacheDTO>> completeTache(int tacheId) async {
     try {
       final headers = await _getHeaders();
@@ -364,41 +388,79 @@ class TacheService {
     }
   }
 
-  Future<ResponseDTO<List<UserDTO>>> getEmployesDisponibles({
-    required DateTime dateDebut,
-    required DateTime dateFin,
+  Future<List<UserDTO>> fetchEmployesDisponibles(
+    DateTime dateDebut,
+    DateTime dateFin, {
+    int? missionId,
   }) async {
-    final uri = Uri.parse(
-      'https://localhost:8080/api/Taches/employes-disponibles',
-    ).replace(
-      queryParameters: {
-        'dateDebut': dateDebut.toIso8601String(),
-        'dateFin': dateFin.toIso8601String(),
-      },
-    );
+    final queryParameters = {
+      'dateDebut': dateDebut.toIso8601String(),
+      'dateFin': dateFin.toIso8601String(),
+    };
 
+    if (missionId != null) {
+      queryParameters['missionId'] = missionId.toString();
+    }
+
+    final uri = Uri.parse(
+      '$_baseUrl${ApiConfig.taches}/employes-disponibles',
+    ).replace(queryParameters: queryParameters);
+
+    print('Requête GET vers : $uri');
+
+    final response = await http.get(uri);
+
+    print('Code de réponse HTTP : ${response.statusCode}');
+    print('Corps de la réponse : ${response.body}');
+
+    if (response.statusCode == 200) {
+      final jsonResponse = json.decode(response.body);
+
+      print('Réponse JSON décodée : $jsonResponse');
+
+      if (jsonResponse['success'] == true) {
+        final data = jsonResponse['data'] as List;
+        print('Nombre d\'employés disponibles reçus : ${data.length}');
+        return data.map((e) => UserDTO.fromJson(e)).toList();
+      } else {
+        print('Erreur API : ${jsonResponse['message']}');
+        throw Exception('Erreur API: ${jsonResponse['message']}');
+      }
+    } else {
+      print('Erreur HTTP : ${response.statusCode}');
+      throw Exception('Erreur HTTP: ${response.statusCode}');
+    }
+  }
+
+  Future<ResponseDTO<double>> fetchDepensesMission(int missionId) async {
     try {
-      final response = await http.get(uri);
+      final headers = await _getHeaders();
+      final url = Uri.parse(
+        '$_baseUrl${ApiConfig.missions}/$missionId/depenses',
+      );
+      print('📡 [API CALL] GET $url');
+
+      final response = await http.get(url, headers: headers);
+
+      print('📥 [API RESPONSE] Status: ${response.statusCode}');
+      print('📥 [API RESPONSE] Body: ${response.body}');
 
       if (response.statusCode == 200) {
-        final jsonBody = json.decode(response.body);
+        final jsonData = json.decode(response.body);
+        print('✅ Dépenses reçues : $jsonData');
 
-        return ResponseDTO<List<UserDTO>>.fromJson(
-          jsonBody,
-          (data) =>
-              (data as List).map((item) => UserDTO.fromJson(item)).toList(),
+        return ResponseDTO<double>(
+          success: true,
+          data: (jsonData is num) ? jsonData.toDouble() : null,
         );
       } else {
-        return ResponseDTO<List<UserDTO>>(
-          success: false,
-          message: "Erreur serveur : ${response.statusCode}",
-        );
+        print('❌ Erreur HTTP: ${response.statusCode}');
+        return _handleError<double>('Code ${response.statusCode}');
       }
-    } catch (e) {
-      return ResponseDTO<List<UserDTO>>(
-        success: false,
-        message: "Erreur de connexion ou exception : $e",
-      );
+    } catch (e, stackTrace) {
+      print('🛑 Exception attrapée: $e');
+      print('📌 Stack trace: $stackTrace');
+      return _handleError<double>(e.toString());
     }
   }
 }

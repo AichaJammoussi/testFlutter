@@ -109,11 +109,13 @@ class _AuthWrapperState extends State<AuthWrapper> {
 }
 */
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:testfront/core/models/RoleProvider.dart';
 import 'package:testfront/core/models/auth_storage.dart';
+import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/providers/VignetteProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart'
     show MissionProvider;
@@ -127,6 +129,7 @@ import 'package:testfront/features/auth/conditions_screen.dart';
 import 'package:testfront/features/dashbords/WebDashboard.dart';
 import 'package:testfront/features/home/home_screen.dart';
 import 'package:testfront/features/mission/MissionPage.dart';
+import 'package:testfront/features/mission/MissionPageEmploye.dart';
 import 'package:testfront/features/profile/ForgotPasswordScreen.dart';
 import 'package:testfront/features/profile/change_password_screen.dart';
 import 'package:testfront/features/profile/profile_screen.dart';
@@ -151,12 +154,20 @@ void main() {
         ChangeNotifierProvider(create: (_) => MissionProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => TacheProvider()),
+        ChangeNotifierProvider(create: (_) => UserProvider()),
       ],
 
       child: const MyApp(),
     ),
   );
 }
+
+bool isMobile() {
+  if (kIsWeb) return false;
+  return Platform.isAndroid || Platform.isIOS;
+}
+
+bool isWeb() => kIsWeb;
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -171,15 +182,17 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (_) => LoginScreen(),
         '/register': (_) => const RegisterScreen(),
-        '/home': (_) => const HomeScreen(),
+        '/home': (_) => HomeScreen(),
         '/conditions': (_) => const ConditionsScreen(),
-        '/admin': (_) => const HomeScreen(),
-        '/employee': (_) => const HomeScreen(),
+        '/admin': (_) => HomeScreen(),
+        '/employee': (_) => HomeScreen(),
         '/profile': (_) => const ProfileScreen(),
         '/role': (_) => const RoleListScreen(),
         '/forgot-password': (_) => const ForgotPasswordScreen(),
         '/vehicule': (_) => VehiculeScreen(),
         '/mission': (_) => MissionsScreen(),
+        '/missionEmploye': (_) => MissionsScreenEmploye(),
+
         //'/dashbord': (_) => PizzaMailApp(),
         /*'/home':
             (_) => MainLayout(currentRoute: '/home', child: const HomeScreen()),*/
@@ -279,7 +292,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     return _isLoading
         ? const Scaffold(body: Center(child: CircularProgressIndicator()))
         : _isLoggedIn
-        ? const HomeScreen()
+        ? HomeScreen()
         : const LoginScreen();
   }
 }

@@ -275,7 +275,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                     const SizedBox(height: 12),
 
                     // Ligne des filtres et boutons de tri
-                    Row(
+                    Wrap(
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<StatutMission>(
@@ -286,8 +286,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
+                                horizontal: 6,
+                                vertical: 6,
                               ),
                             ),
                             items: [
@@ -313,6 +313,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                         Expanded(
                           child: DropdownButtonFormField<PrioriteMission>(
                             value: _selectedPrioriteFilter,
+
                             decoration: InputDecoration(
                               labelText: 'Filtrer par priorité',
                               border: OutlineInputBorder(
@@ -343,6 +344,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                           ),
                         ),
                         const SizedBox(width: 10),
+
                         // Boutons de tri alignés avec les filtres
                         IconButton(
                           icon: Icon(
@@ -715,7 +717,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                                       title: 'Dépenses',
                                       content:
                                           mission.depenses != null
-                                              ? '${mission.depenses!.toStringAsFixed(2)} €'
+                                              ? '${mission.depenses!.toStringAsFixed(2)} Dt'
                                               : 'Non spécifié',
                                     ),
                                   ),
@@ -1029,11 +1031,6 @@ class _MissionsScreenState extends State<MissionsScreen> {
 
       final provider = context.read<MissionProvider>();
       try {
-        await provider.loadEmployesDisponibles(
-          _dateDebutPrevue!,
-          _dateFinPrevue!,
-        );
-
         if (_typeTransport == MoyenTransport.Vehicule) {
           await provider.loadVehiculesDisponibles(
             _dateDebutPrevue!,

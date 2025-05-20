@@ -1,8 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:testfront/core/models/auth_response.dart';
+import 'package:testfront/core/models/user.dart';
+import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -92,6 +95,15 @@ class _LoginScreenState extends State<LoginScreen>
 
         await _saveUserData(authResponse);
         _showSuccessMessage(authResponse.message ?? 'Connexion réussie');
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        userProvider.setUser(
+          User(
+            id: authResponse.userId!,
+            email: authResponse.email!,
+            name: authResponse.userName ?? '',
+            roles: authResponse.roles ?? [],
+          ),
+        );
         _redirectBasedOnRole(authResponse.roles ?? []);
       } else {
         setState(() {
@@ -201,9 +213,51 @@ class _LoginScreenState extends State<LoginScreen>
     } else if (roles.contains('Employe')) {
       Navigator.pushReplacementNamed(context, '/profile');
     } else {
-      Navigator.pushReplacementNamed(context, '/profile');
+      Navigator.pushReplacementNamed(context, '/missionEmploye');
     }
   }
+  /*
+void _redirectBasedOnRole(List<String> roles) {
+  if (roles.contains('admin')) {
+    // Cas admin
+    if (isWeb()) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WebMainPage(userRole: 'admin'),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainPageMobile(userRole: 'admin'),
+        ),
+      );
+    }
+  } else if (!roles.contains('admin')) { 
+    // Cas autre que admin => Employe
+    if (isWeb()) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WebMainPage(userRole: 'Employe'),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainPageMobile(userRole: 'Employe'),
+        ),
+      );
+    }
+  } else {
+    // Aucun rôle connu
+    Navigator.pushReplacementNamed(context, '/profile');
+}
+}
+*/
   /*void _redirectBasedOnRole(List<String> roles) {
   final isAdmin = roles.contains('Admin');
   final hasOtherRoles = roles.isNotEmpty && !isAdmin;
