@@ -436,7 +436,7 @@ class TacheService {
     try {
       final headers = await _getHeaders();
       final url = Uri.parse(
-        '$_baseUrl${ApiConfig.missions}/$missionId/depenses',
+        '$_baseUrl${ApiConfig.missions}/$missionId/depenses/total',
       );
       print('📡 [API CALL] GET $url');
 
@@ -462,5 +462,31 @@ class TacheService {
       print('📌 Stack trace: $stackTrace');
       return _handleError<double>(e.toString());
     }
+
   }
+
+  Future<double> getTotalDepensesParTache(int tacheId) async {
+  final url = Uri.parse('$_baseUrl${ApiConfig.taches}/$tacheId/depenses/total');
+
+  print('📤 [REQ] PUT vers taches  $url');
+
+  final response = await http.put(url);
+
+  print('📥 [RES] Code: ${response.statusCode}');
+  print('📦 [RES] Body: ${response.body}');
+
+  if (response.statusCode == 200) {
+    final data = json.decode(response.body);
+    final total = (data['totalDepenses'] as num).toDouble();
+    print('✅ [SUCCÈS] Total des dépenses taches récupéré: $total');
+    return total;
+  } else if (response.statusCode == 404) {
+    print('❌ [ERREUR 404] Tâche non trouvée pour ID $tacheId');
+    throw Exception('Tâche non trouvée');
+  } else {
+    print('❌ [ERREUR ${response.statusCode}] Échec de récupération des dépenses');
+    throw Exception('Erreur lors de la récupération des dépenses');
+  }
+}
+
 }

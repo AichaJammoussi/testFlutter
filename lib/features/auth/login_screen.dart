@@ -209,11 +209,11 @@ class _LoginScreenState extends State<LoginScreen>
   }*/
   void _redirectBasedOnRole(List<String> roles) {
     if (roles.contains('admin')) {
-      Navigator.pushReplacementNamed(context, '/mission');
+      Navigator.pushReplacementNamed(context, '/noti');
     } else if (roles.contains('Employe')) {
-      Navigator.pushReplacementNamed(context, '/profile');
+      Navigator.pushReplacementNamed(context, '/noti');
     } else {
-      Navigator.pushReplacementNamed(context, '/missionEmploye');
+      Navigator.pushReplacementNamed(context, '/noti');
     }
   }
   /*

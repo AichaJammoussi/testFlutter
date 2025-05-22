@@ -1,0 +1,37 @@
+class AuthProvider with ChangeNotifier {
+  final AuthService _authService;
+  String? _token;
+  String? _userId;
+
+  AuthProvider(this._authService);
+
+  String? get token => _token;
+  String? get userId => _userId;
+  bool get isAuthenticated => _token != null;
+
+  Future<void> initialize() async {
+    _token = await _authService.getAuthToken();
+    _userId = await _authService.getUserId();
+    notifyListeners();
+  }
+
+  Future<AuthResponse> login(String email, String password) async {
+    final response = await _authService.login(email: email, password: password);
+    
+    if (response.success) {
+      await _authService.saveAuthToken(response.token!);
+      _token = response.token;
+      _userId = response.userId;
+      notifyListeners();
+    }
+    
+    return response;
+  }
+
+  Future<void> logout() async {
+    await _authService.clearAuthToken();
+    _token = null;
+    _userId = null;
+    notifyListeners();
+  }
+}

@@ -6,6 +6,7 @@ import 'package:testfront/core/models/tache_dto.dart';
 import 'package:testfront/core/models/response.dart';
 import 'package:testfront/core/models/tache_creation_dto.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
+import 'package:testfront/core/services/MissionService.dart';
 import 'package:testfront/core/services/tache_service.dart';
 
 class TacheProvider extends ChangeNotifier {
@@ -159,10 +160,7 @@ class TacheProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await _service.updateStatutTache(
-        tacheId,
-        newStatut,
-      );
+      final response = await _service.updateStatutTache(tacheId, newStatut);
       if (response.success && response.data != null) {
         // Met à jour la tâche dans la liste locale
         final index = _taches.indexWhere((t) => t.tacheId == tacheId);
@@ -291,4 +289,68 @@ class TacheProvider extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+double _totalDepensesMission = 0;
+  double _totalDepensesTache = 0;
+  double _totalBudget = 0;
+
+  
+
+  // Getters
+  double get totalDepensesMission => _totalDepensesMission;
+  double get totalDepensesTache => _totalDepensesTache;
+  double get totalBudget => _totalBudget;
+
+  final MissionService _missionService = MissionService();
+  final TacheService _tacheService = TacheService();
+
+  // 🔁 Dépenses pour une mission
+  Future<void> fetchTotalDepensesMission(int missionId) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final total = await _missionService.getTotalDepensesParMission(missionId);
+      _totalDepensesMission = total;
+    } catch (e) {
+      _error = e.toString();
+      _totalDepensesMission = 0;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // 🔁 Dépenses pour une tâche
+  Future<void> fetchTotalDepensesTache(int tacheId) async {
+    try {
+      _error = null;
+      final total = await _tacheService.getTotalDepensesParTache(tacheId);
+      _totalDepensesTache = total;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      _totalDepensesTache = 0;
+      notifyListeners();
+    }
+  }
+
+  // 🔁 Budget total d’une mission
+  Future<void> chargerTotalBudget(int missionId) async {
+    try {
+      final total = await _missionService.getTotalBudgetParMission(missionId);
+      _totalBudget = total;
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  void clearErrors() {
+    _error = null;
+    notifyListeners();
+  }
+
 }

@@ -132,7 +132,21 @@ class AuthService {
       );
     }
   }
+static String? _token;
 
+  // Récupère le token depuis la mémoire
+  static String getToken() {
+    return _token ?? '';
+  }
+
+  // Récupère le token depuis les SharedPreferences (stockage persistant)
+  static Future<String?> token() async {
+    if (_token != null) return _token;
+    
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('auth_token');
+    return _token;
+  }
  Future<String?> getAuthToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
@@ -192,9 +206,19 @@ class AuthService {
       return false;
     }
   }
+  // Synchronous version
+  static String getTokenSync() {
+    if (_token != null) return _token!;
+    throw Exception('Token not loaded - call token() first');
+  }
+
+  // Asynchronous version
+  static Future<String?> tokenn() async {
+    if (_token != null) return _token;
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('auth_token');
+    return _token;
+  }
+
 }
-/* | 
-http.Client | Le moteur qui envoie tes requêtes HTTP/HTTPS
-final client; | Ta voiture pour aller vers l'API
-client ?? http.Client(); | Soit tu amènes ta propre voiture, soit je t’en donne une neuve. 🚗*/
 

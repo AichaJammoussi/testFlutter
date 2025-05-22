@@ -4142,6 +4142,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:testfront/core/models/NotificationCreateDTO.dart';
 import 'package:testfront/core/models/PrioriteTache.dart';
 import 'package:testfront/core/models/StatusTache.dart';
 import 'package:testfront/core/models/TacheUpdateDTO.dart';
@@ -4150,6 +4151,8 @@ import 'package:testfront/core/models/tache_creation_dto.dart';
 import 'package:testfront/core/models/tache_dto.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
 import 'package:testfront/core/providers/tache_provider.dart';
+import 'package:testfront/core/services/NotificationService.dart';
+import 'package:testfront/core/services/signalr_client.dart';
 
 class TachesParMissionScreen extends StatefulWidget {
   final int missionId;
@@ -4207,6 +4210,22 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+  }
+
+  Future<void> _updateDepenseEtTotal() async {
+    final tacheProvider = Provider.of<TacheProvider>(context, listen: false);
+    final missionProvider = Provider.of<MissionProvider>(
+      context,
+      listen: false,
+    );
+
+    //final missionId = tacheProvider.selectedTache?.missionId;
+      await tacheProvider.fetchTotalDepensesMission(widget.missionId);
+      await tacheProvider.chargerTotalBudget(widget.missionId);
+      await tacheProvider.fetchTotalDepensesTache(
+        tacheProvider.selectedTache!.tacheId,
+      );
+    
   }
 
   Future<void> _loadEmployesDisponibles() async {
@@ -4510,6 +4529,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
           );
           // Recharger les tâches après suppression
           await tacheProvider.fetchTachesByMissionId(widget.missionId);
+          _updateDepenseEtTotal();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Erreur lors de la suppression')),
@@ -4599,6 +4619,15 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                                 content:
                                     '${tache.budget.toStringAsFixed(2)} Dt',
                               ),
+                              if (tache.depenses != null) ...[
+                                const SizedBox(height: 12),
+                                _buildDetailCard(
+                                  icon: Icons.mobile_friendly_rounded,
+                                  title: 'Dépenses',
+                                  content:
+                                      '${tache.depenses?.toStringAsFixed(2)} Dt',
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -4854,6 +4883,8 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                                     shadowColor: Colors.blue.withOpacity(0.3),
                                   ),
                                   onPressed: () {
+                                    _updateDepenseEtTotal();
+
                                     Navigator.pop(context);
                                   },
                                   child: Text(
@@ -4936,13 +4967,14 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                                         );
                                         _handleAddTache(newTache);
                                         Navigator.pop(context);
-                                        tacheProvider.loadDepensesMission(
-                                          widget.missionId,
-                                        );
+
                                         tacheProvider.updateEmployes(
                                           widget.missionId,
                                         );
+                                        _updateDepenseEtTotal();
+
                                         missionProvider.loadMissions();
+                                        _updateDepenseEtTotal();
                                       }
                                     });
                                   },
@@ -5009,275 +5041,257 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
     Map<String, String> _fieldErrors = {};
     final missionProvider = context.read<MissionProvider>();
     final mission = await missionProvider.getMissionById(widget.missionId);
-    await showDialog(
-      context: context,
-      builder:
-          (context) => StatefulBuilder(
-            builder: (context, setState) {
-              final isMobile = MediaQuery.of(context).size.width < 600;
 
-              return Dialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                backgroundColor: Colors.transparent,
-                child: Container(
-                  width: isMobile ? double.infinity : 400,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 20,
+   await showDialog(
+  context: context,
+  builder: (context) => StatefulBuilder(
+    builder: (context, setState) {
+      final isMobile = MediaQuery.of(context).size.width < 600;
+
+      return Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: isMobile ? double.infinity : 400,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 12,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Modifier Tâche',
+                    style: GoogleFonts.poppins(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF2A5298),
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 12,
-                        offset: Offset(0, 6),
+                  const SizedBox(height: 18),
+
+                  // CHAMPS FORMULAIRES
+                  TextFormField(
+                    controller: _titreController,
+                    decoration: InputDecoration(
+                      labelText: 'Titre *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      errorText: _fieldErrors['titre'],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Description',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      errorText: _fieldErrors['description'],
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+
+                  TextFormField(
+                    controller: _budgetController,
+                    decoration: InputDecoration(
+                      labelText: 'Budget *',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      errorText: _fieldErrors['budget'],
+                      prefixIcon: const Icon(Icons.attach_money),
+                      suffixText: 'DT',
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  DropdownButtonFormField<PrioriteTache>(
+                    value: selectedPriorite,
+                    decoration: InputDecoration(
+                      labelText: 'Priorité',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    items: PrioriteTache.values.map((p) {
+                      return DropdownMenuItem(
+                        value: p,
+                        child: Text(_getPrioriteTacheText(p)),
+                      );
+                    }).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => selectedPriorite = val);
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Sélection employé
+                  if (isLoading)
+                    const Center(child: CircularProgressIndicator())
+                  else if (error != null)
+                    Text(error!, style: const TextStyle(color: Colors.red))
+                  else
+                    DropdownButtonFormField<String>(
+                      value: selectedUserId,
+                      decoration: InputDecoration(
+                        labelText: 'Employé assigné *',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        errorText: _fieldErrors['user'],
+                      ),
+                      items: employesDisponibles.map((e) {
+                        return DropdownMenuItem(
+                          value: e.id,
+                          child: Text('${e.prenom} ${e.nom}'),
+                        );
+                      }).toList(),
+                      onChanged: (val) => setState(() => selectedUserId = val),
+                    ),
+
+                  const SizedBox(height: 24),
+
+                  // BOUTONS ACTION
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2A5298),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Annuler',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2A5298),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 4,
+                            shadowColor: Colors.blue.withOpacity(0.3),
+                          ),
+                          onPressed: () async {
+                            final notificationService =
+                                Provider.of<NotificationService>(context, listen: false);
+                            final signalRService =
+                                Provider.of<SignalRService>(context, listen: false);
+
+                            setState(() {
+                              _fieldErrors = {};
+                              if (_titreController.text.trim().isEmpty) {
+                                _fieldErrors['titre'] = 'Champ obligatoire';
+                              }
+                              if (_descriptionController.text.trim().isEmpty) {
+                                _fieldErrors['description'] = 'Champ obligatoire';
+                              }
+                              if (_budgetController.text.trim().isEmpty) {
+                                _fieldErrors['budget'] = 'Champ obligatoire';
+                              } else if (double.tryParse(_budgetController.text) == null) {
+                                _fieldErrors['budget'] = 'Nombre invalide';
+                              } else if (double.parse(_budgetController.text) <= 0) {
+                                _fieldErrors['budget'] = 'Le budget doit être positif';
+                              }
+                              if (selectedUserId == null || selectedUserId!.isEmpty) {
+                                _fieldErrors['user'] = 'Veuillez choisir un employé';
+                              }
+                            });
+
+                            if (_fieldErrors.isEmpty) {
+                              final updatedTache = TacheUpdateDTO(
+                                titre: _titreController.text.trim(),
+                                description: _descriptionController.text.trim(),
+                                priorite: selectedPriorite,
+                                statut: selectedStatut,
+                                userId: selectedUserId!,
+                                budget: double.parse(_budgetController.text.trim()),
+                              );
+
+                              _handleEditTache(tache, updatedTache);
+                              Navigator.pop(context);
+
+                              tacheProvider.loadDepensesMission(widget.missionId);
+                              tacheProvider.updateEmployes(widget.missionId);
+                              _updateDepenseEtTotal();
+                              tacheProvider.chargerTotalBudget(widget.missionId);
+                              missionProvider.loadMissions();
+
+                              final notificationDTO = NotificationCreateDTO(
+                                title: 'Tâche mise à jour',
+                                message:
+                                    'Votre tâche "${updatedTache.titre}" a été modifiée.',
+                                userId: updatedTache.userId.toString(),
+                              );
+
+                             /* final createResponse =
+                                  await notificationService.createNotification(notificationDTO);
+
+                              if (createResponse.success && createResponse.data != null) {
+                                await signalRService.sendNotification(
+                                  notificationDTO.userId,
+                                  createResponse.data!,
+                                );
+                              }*/
+                            }
+                          },
+                          child: Text(
+                            'Mettre à jour',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  child: SingleChildScrollView(
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Modifier Tâche',
-                            style: GoogleFonts.poppins(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF2A5298),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-
-                          TextFormField(
-                            controller: _titreController,
-                            decoration: InputDecoration(
-                              labelText: 'Titre *',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              errorText: _fieldErrors['titre'],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          TextFormField(
-                            controller: _descriptionController,
-                            decoration: InputDecoration(
-                              labelText: 'Description',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              errorText: _fieldErrors['description'],
-                            ),
-                            maxLines: 3,
-                          ),
-                          const SizedBox(height: 16),
-
-                          TextFormField(
-                            controller: _budgetController,
-                            decoration: InputDecoration(
-                              labelText: 'Budget *',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              errorText: _fieldErrors['budget'],
-                              prefixIcon: const Icon(Icons.attach_money),
-                              suffixText: 'DT',
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'^\d*\.?\d{0,2}'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          DropdownButtonFormField<PrioriteTache>(
-                            value: selectedPriorite,
-                            decoration: InputDecoration(
-                              labelText: 'Priorité',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            items:
-                                PrioriteTache.values.map((p) {
-                                  return DropdownMenuItem(
-                                    value: p,
-                                    child: Text(_getPrioriteTacheText(p)),
-                                  );
-                                }).toList(),
-                            onChanged: (val) {
-                              if (val != null)
-                                setState(() => selectedPriorite = val);
-                            },
-                          ),
-                          const SizedBox(height: 16),
-
-                          const SizedBox(height: 16),
-
-                          if (isLoading)
-                            const Center(child: CircularProgressIndicator())
-                          else if (error != null)
-                            Text(
-                              error!,
-                              style: const TextStyle(color: Colors.red),
-                            )
-                          else
-                            DropdownButtonFormField<String>(
-                              value: selectedUserId,
-                              decoration: InputDecoration(
-                                labelText: 'Employé assigné *',
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                errorText: _fieldErrors['user'],
-                              ),
-                              items:
-                                  employesDisponibles.map((e) {
-                                    return DropdownMenuItem(
-                                      value: e.id,
-                                      child: Text('${e.prenom} ${e.nom}'),
-                                    );
-                                  }).toList(),
-                              onChanged:
-                                  (val) => setState(() => selectedUserId = val),
-                            ),
-                          const SizedBox(height: 24),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2A5298),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  onPressed: () => Navigator.pop(context),
-                                  child: Text(
-                                    'Annuler',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white, // texte blanc
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2A5298),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 14,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 4,
-                                    shadowColor: Colors.blue.withOpacity(0.3),
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _fieldErrors = {};
-                                      if (_titreController.text
-                                          .trim()
-                                          .isEmpty) {
-                                        _fieldErrors['titre'] =
-                                            'Champ obligatoire';
-                                      }
-                                      if (_descriptionController.text
-                                          .trim()
-                                          .isEmpty) {
-                                        _fieldErrors['description'] =
-                                            'Champ obligatoire';
-                                      }
-                                      if (_budgetController.text
-                                          .trim()
-                                          .isEmpty) {
-                                        _fieldErrors['budget'] =
-                                            'Champ obligatoire';
-                                      } else if (double.tryParse(
-                                            _budgetController.text,
-                                          ) ==
-                                          null) {
-                                        _fieldErrors['budget'] =
-                                            'Nombre invalide';
-                                      } else if (double.parse(
-                                            _budgetController.text,
-                                          ) <=
-                                          0) {
-                                        _fieldErrors['budget'] =
-                                            'Le budget doit être positif';
-                                      }
-                                      if (selectedUserId == null ||
-                                          selectedUserId!.isEmpty) {
-                                        _fieldErrors['user'] =
-                                            'Veuillez choisir un employé';
-                                      }
-
-                                      if (_fieldErrors.isEmpty) {
-                                        final updatedTache = TacheUpdateDTO(
-                                          titre: _titreController.text.trim(),
-                                          description:
-                                              _descriptionController.text
-                                                  .trim(),
-                                          priorite: selectedPriorite,
-                                          statut: selectedStatut,
-                                          userId: selectedUserId!,
-                                          budget: double.parse(
-                                            _budgetController.text.trim(),
-                                          ),
-                                        );
-                                        _handleEditTache(tache, updatedTache);
-                                        Navigator.pop(context);
-                                        tacheProvider.loadDepensesMission(
-                                          widget.missionId,
-                                        );
-                                        tacheProvider.updateEmployes(
-                                          widget.missionId,
-                                        );
-                                        missionProvider.loadMissions();
-                                      }
-                                    });
-                                  },
-                                  child: Text(
-                                    'Mettre à jour',
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
+                ],
+              ),
+            ),
           ),
-    );
+        ),
+      );
+    },
+  ),
+);
+
   }
 
   @override

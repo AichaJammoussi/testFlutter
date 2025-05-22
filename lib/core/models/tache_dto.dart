@@ -1,6 +1,6 @@
+import 'package:testfront/core/models/Depensedto.dart';
 import 'package:testfront/core/models/PrioriteTache.dart';
 import 'package:testfront/core/models/StatusTache.dart';
-import 'package:testfront/core/models/depense_dto.dart';
 
 class TacheDTO {
   final int tacheId;
@@ -14,8 +14,9 @@ class TacheDTO {
   final String? userName;
   final int? missionId;
   final String? missionTitre;
-  final List<DepenseDTO>? depenses;
+  final List<DepenseDTO>? depense;
   final double budget;
+  final double? depenses;
 
   TacheDTO({
     required this.tacheId,
@@ -29,8 +30,9 @@ class TacheDTO {
     this.userName,
     this.missionId,
     this.missionTitre,
-    this.depenses,
+    this.depense,
     required this.budget,
+    this.depenses,
   });
 
   factory TacheDTO.fromJson(Map<String, dynamic> json) {
@@ -55,13 +57,14 @@ class TacheDTO {
       userName: json['userName'],
       missionId: json['missionId'],
       missionTitre: json['missionTitre'],
-      depenses:
-          json['depenses'] != null
+      depense:
+          json['depense'] != null
               ? List<DepenseDTO>.from(
-                json['depenses'].map((x) => DepenseDTO.fromJson(x)),
+                json['depense'].map((x) => DepenseDTO.fromJson(x)),
               )
               : null,
       budget: json['budget'],
+      depenses: json['depenses'],
     );
   }
 
@@ -78,8 +81,9 @@ class TacheDTO {
       'userName': userName,
       'missionId': missionId,
       'missionTitre': missionTitre,
-      'depenses': depenses?.map((x) => x.toJson()).toList(),
-      'budget':budget
+      'depense': depense?.map((x) => x.toJson()).toList(),
+      'budget': budget,
+      'depenses':depenses,
     };
   }
 }

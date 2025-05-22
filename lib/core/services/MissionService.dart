@@ -124,6 +124,7 @@ class MissionService {
       print('📥 Corps de la réponse: ${response.body}');
 
       if (response.statusCode == 200) {
+        print('✅ Mission créée avec succès');
         return ResponseDTO<MissionDTO>.fromJson(
           json.decode(response.body),
           (data) => MissionDTO.fromJson(data),
@@ -360,6 +361,62 @@ class MissionService {
         errors: {"exception": e.toString()},
         data: null,
       );
+    }
+  }
+
+  Future<double> getTotalDepensesParMission(int missionId) async {
+    final headers = await _getHeaders();
+
+    final url = Uri.parse(
+      '$_baseUrl${ApiConfig.missions}/$missionId/depenses/total',
+    );
+
+    print("📤 Envoi de la requête GET à : $url");
+
+    final response = await http.put(url, headers: headers);
+
+    print("📥 Réponse reçue : code ${response.statusCode}");
+    print("🔍 Corps de la réponse : ${response.body}");
+
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> data = json.decode(response.body);
+      final total = (data['totalDepenses'] as num).toDouble();
+      print("✅ Total des dépenses reçu : $total");
+      return total;
+    } else if (response.statusCode == 404) {
+      print("⚠️ Mission non trouvée pour l'ID $missionId");
+      throw Exception('Mission non trouvée');
+    } else {
+      print("❌ Erreur inconnue (code ${response.statusCode})");
+      throw Exception('Erreur lors de la récupération du total des dépenses');
+    }
+  }
+
+  Future<double> getTotalBudgetParMission(int missionId) async {
+    final url = Uri.parse(
+      '$_baseUrl${ApiConfig.missions}/$missionId/budget/total',
+    );
+
+    print('📤 Envoi de la requête PUT à : $url');
+    final headers = await _getHeaders();
+
+    final response = await http.put(
+      url,
+      headers:headers, // ⚠️ Remplace `$token` par le token actuel
+    );
+
+    print('📥 Réponse reçue : code ${response.statusCode}');
+    print('🔍 Corps de la réponse : ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final total = (data['totalBudget'] as num).toDouble();
+      print('✅ Budget total reçu : $total');
+      return total;
+    } else if (response.statusCode == 404) {
+      throw Exception('Mission non trouvée');
+    } else {
+      throw Exception('Erreur lors de la récupération du total du budget');
     }
   }
 }

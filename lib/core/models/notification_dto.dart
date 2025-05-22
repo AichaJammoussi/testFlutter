@@ -1,4 +1,3 @@
-// models/notification_dto.dart
 class NotificationDto {
   final int id;
   final String title;
@@ -16,11 +15,21 @@ class NotificationDto {
 
   factory NotificationDto.fromJson(Map<String, dynamic> json) {
     return NotificationDto(
-      id: json['id'],
-      title: json['title'],
-      message: json['message'],
-      isRead: json['isRead'],
-      createdAt: DateTime.parse(json['createdAt']),
+      id: json['id'] is int ? json['id'] : int.parse(json['id'].toString()),
+      title: json['title'] ?? '',
+      message: json['message'] ?? '',
+      isRead: json['isRead'] is bool
+          ? json['isRead']
+          : (json['isRead'].toString().toLowerCase() == 'true'),
+      createdAt: DateTime.tryParse(json['createdAt'] ?? '') ?? DateTime.now(),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'title': title,
+        'message': message,
+        'isRead': isRead,
+        'createdAt': createdAt.toIso8601String(),
+      };
 }

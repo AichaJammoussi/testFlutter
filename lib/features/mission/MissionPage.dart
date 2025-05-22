@@ -8,7 +8,8 @@ import 'package:testfront/core/models/PrioriteMission.dart';
 import 'package:testfront/core/models/StatutMission.dart';
 import 'package:testfront/core/models/VehiculeDTO.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
-import 'package:testfront/features/mission/AjouterTacheScreen.dart';
+import 'package:testfront/core/providers/tache_provider.dart';
+import 'package:testfront/features/mission/TacheMission.dart';
 
 class MissionsScreen extends StatefulWidget {
   const MissionsScreen({Key? key}) : super(key: key);
@@ -60,6 +61,23 @@ class _MissionsScreenState extends State<MissionsScreen> {
         _searchQuery = _searchController.text.toLowerCase();
       });
     });
+  }
+
+  Future<void> _updateDepenseEtTotal() async {
+    final tacheProvider = Provider.of<TacheProvider>(context, listen: false);
+    final missionProvider = Provider.of<MissionProvider>(
+      context,
+      listen: false,
+    );
+
+    final missionId = tacheProvider.selectedTache?.missionId;
+    if (missionId != null) {
+      await tacheProvider.fetchTotalDepensesMission(missionId);
+      await tacheProvider.chargerTotalBudget(missionId);
+      await tacheProvider.fetchTotalDepensesTache(
+        tacheProvider.selectedTache!.tacheId,
+      );
+    }
   }
 
   @override
@@ -1006,7 +1024,6 @@ class _MissionsScreenState extends State<MissionsScreen> {
     final _formKey = GlobalKey<FormState>();
     final _titreController = TextEditingController();
     final _descriptionController = TextEditingController();
-    final _budgetController = TextEditingController();
 
     DateTime? _dateDebutPrevue;
     DateTime? _dateFinPrevue;
@@ -1238,14 +1255,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                                   ),
                                 ),
                               ),
-                            const SizedBox(height: 16),
-                            _buildDialogTextField(
-                              controller: _budgetController,
-                              label: 'Budget *',
-                              icon: Icons.attach_money,
-                              keyboardType: TextInputType.number,
-                              errorText: _fieldErrors['budget'],
-                            ),
+                           
                             const SizedBox(height: 16),
                             DropdownButtonFormField<PrioriteMission>(
                               value: selectedPriorite,
@@ -1481,14 +1491,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                               )) {
                                 _fieldErrors['dates'] = 'Date début > date fin';
                               }
-                              if (_budgetController.text.isEmpty) {
-                                _fieldErrors['budget'] = 'Champ obligatoire';
-                              } else if (double.tryParse(
-                                    _budgetController.text,
-                                  ) ==
-                                  null) {
-                                _fieldErrors['budget'] = 'Nombre invalide';
-                              }
+                              
                               if (_typeTransport == MoyenTransport.Vehicule &&
                                   _selectedVehiculeIds.isEmpty) {
                                 _fieldErrors['vehicules'] =
@@ -1509,7 +1512,6 @@ class _MissionsScreenState extends State<MissionsScreen> {
                                       _typeTransport == MoyenTransport.Vehicule
                                           ? _selectedVehiculeIds
                                           : [],
-                                  budget: double.parse(_budgetController.text),
                                 );
 
                                 try {
@@ -1609,9 +1611,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
     final _descriptionController = TextEditingController(
       text: mission.description,
     );
-    final _budgetController = TextEditingController(
-      text: mission.budget.toString(),
-    );
+    
 
     DateTime? _dateDebutPrevue = mission.dateDebutPrevue;
     DateTime? _dateFinPrevue = mission.dateFinPrevue;
@@ -1812,13 +1812,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                                 ),
                               ),
                             const SizedBox(height: 16),
-                            _buildDialogTextField(
-                              controller: _budgetController,
-                              label: 'Budget *',
-                              icon: Icons.attach_money,
-                              keyboardType: TextInputType.number,
-                              errorText: _fieldErrors['budget'],
-                            ),
+                          
                             const SizedBox(height: 16),
                             DropdownButtonFormField<PrioriteMission>(
                               value: selectedPriorite,
@@ -2032,14 +2026,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                               )) {
                                 _fieldErrors['dates'] = 'Date début > date fin';
                               }
-                              if (_budgetController.text.isEmpty) {
-                                _fieldErrors['budget'] = 'Champ obligatoire';
-                              } else if (double.tryParse(
-                                    _budgetController.text,
-                                  ) ==
-                                  null) {
-                                _fieldErrors['budget'] = 'Nombre invalide';
-                              }
+                             
                               if (_typeTransport == MoyenTransport.Vehicule &&
                                   _selectedVehiculeIds.isEmpty) {
                                 _fieldErrors['vehicules'] =
@@ -2060,7 +2047,6 @@ class _MissionsScreenState extends State<MissionsScreen> {
                                       _typeTransport == MoyenTransport.Vehicule
                                           ? _selectedVehiculeIds
                                           : [],
-                                  budget: double.parse(_budgetController.text),
                                 );
 
                                 try {
@@ -2073,6 +2059,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
 
                                   if (success && mounted) {
                                     Navigator.pop(context);
+                                    _updateDepenseEtTotal();
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: const Text(

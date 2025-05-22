@@ -3,12 +3,17 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:testfront/core/models/MissionDTO.dart';
 import 'package:testfront/core/models/PrioriteMission.dart';
+import 'package:testfront/core/models/RemboursementDTO.dart';
 import 'package:testfront/core/models/StatutMission.dart';
 import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
-import 'package:testfront/features/mission/AjouterTacheScreen.dart';
+import 'package:testfront/core/providers/remboursement_provider.dart';
+import 'package:testfront/core/providers/tache_provider.dart';
+import 'package:testfront/features/mission/TacheMission.dart';
 import 'package:testfront/features/mission/tacheEmploye.dart';
+import 'package:collection/collection.dart';
 
+//missionet l employe el connecte
 class MissionsScreenEmploye extends StatefulWidget {
   const MissionsScreenEmploye({Key? key}) : super(key: key);
 
@@ -34,6 +39,9 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userProvider = context.read<UserProvider>();
       final missionProvider = context.read<MissionProvider>();
+      Future.microtask(
+        () => context.read<RemboursementProvider>().loadMesRemboursements(),
+      );
 
       // Boucle d'attente tant que user == null
       while (userProvider.user == null) {
@@ -50,6 +58,27 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
         _currentPage = 1; // reset page on search/filter change
       });
     });
+  }
+
+  Future<void> _updateDepenseEtTotal() async {
+    final tacheProvider = Provider.of<TacheProvider>(context, listen: false);
+    final missionProvider = Provider.of<MissionProvider>(
+      context,
+      listen: false,
+    );
+    final remboursementProvider = Provider.of<RemboursementProvider>(
+      context,
+      listen: false,
+    );
+
+    //final success = await tacheProvider.getTacheById(widget.tacheId);
+
+    final missionId = tacheProvider.selectedTache?.missionId;
+    if (missionId != null) {
+      await tacheProvider.fetchTotalDepensesMission(missionId);
+      await tacheProvider.chargerTotalBudget(missionId);
+      await remboursementProvider.creerOuMettreAJourDemande(missionId);
+    }
   }
 
   @override
@@ -453,6 +482,85 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
                         ),
                       ],
                     ),
+                    if (mission.statut == StatutMission.TERMINEE) ...[
+                      const SizedBox(height: 20),
+                      Consumer<RemboursementProvider>(
+                        builder: (context, remboursementProvider, _) {
+                          final isLoading = remboursementProvider.isLoading;
+
+                          // Recherche demande associée
+                          final RemboursementDTO? demandeExistante =
+                              remboursementProvider.remboursements
+                                  .firstWhereOrNull(
+                                    (r) => r.missionId == mission.missionId,
+                                  );
+
+                          final bool demandeDejaFaite =
+                              demandeExistante != null;
+
+                          String labelButton;
+                          if (demandeDejaFaite) {
+                            if (demandeExistante!.montant < 0) {
+                              labelButton =
+                                  'Demande de retour d\'argent : ${demandeExistante.montant.abs().toStringAsFixed(2)} DT';
+                            } else if (demandeExistante.montant > 0) {
+                              labelButton =
+                                  'Demande de remboursement : ${demandeExistante.montant.toStringAsFixed(2)} DT';
+                            } else {
+                              labelButton =
+                                  'Montant nul, aucune demande nécessaire';
+                            }
+                           
+                          } else if (isLoading) {
+                            labelButton = '⏳ Envoi en cours...';
+                          } else {
+                            labelButton = '💸 Demander un remboursement';
+                          }
+
+                          return ElevatedButton.icon(
+                            onPressed:
+                                (demandeDejaFaite || isLoading)
+                                    ? null
+                                    : () async {
+                                      await remboursementProvider
+                                          .creerOuMettreAJourDemande(
+                                            mission.missionId,
+                                          );
+
+                                      if (context.mounted) {
+                                        final error =
+                                            remboursementProvider.error;
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              error != null
+                                                  ? '❌ Erreur : $error'
+                                                  : '✅ Demande envoyée avec succès',
+                                            ),
+                                            backgroundColor:
+                                                error != null
+                                                    ? Colors.red
+                                                    : Colors.green,
+                                          ),
+                                        );
+                                      }
+
+                                      Navigator.pop(context);
+                                    },
+                            icon: const Icon(Icons.request_page),
+                            label: Text(labelButton),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF2A5298),
+                              disabledBackgroundColor: Colors.grey,
+                              minimumSize: const Size(double.infinity, 48),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
 
                     _buildDetailRow('📄 Description', mission.description),
                     _buildDetailRow(

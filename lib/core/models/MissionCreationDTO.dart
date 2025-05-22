@@ -5,7 +5,6 @@ class MissionCreationDTO {
   final DateTime dateFinPrevue;
   final int priorite; // enum as int
   final int typeMoyenTransport; // enum as int
-  final double budget;
   final List<int> vehiculeeIds;
 
   MissionCreationDTO({
@@ -15,7 +14,6 @@ class MissionCreationDTO {
     required this.dateFinPrevue,
     required this.priorite,
     required this.typeMoyenTransport,
-    required this.budget,
     required this.vehiculeeIds,
   });
 
@@ -26,7 +24,6 @@ class MissionCreationDTO {
     'DateFinPrevue': dateFinPrevue.toIso8601String(),
     'Priorite': priorite,
     'TypeMoyenTransport': typeMoyenTransport,
-    'Budget': budget,
     'VehiculeeIds': vehiculeeIds,
   };
 }

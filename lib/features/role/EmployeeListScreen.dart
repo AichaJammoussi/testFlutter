@@ -322,7 +322,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                         listen: false,
                                       );
 
-                                  // Envoyer une notification à chaque utilisateur assigné
+                                  /*// Envoyer une notification à chaque utilisateur assigné
                                   for (final userId in selected) {
                                     final dto = NotificationCreateDTO(
                                       userId: userId,
@@ -340,7 +340,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                       );
                                       // Optionnel : gérer l’erreur (afficher un message, etc.)
                                     }
-                                  }
+                                  }*/
 
                                   Navigator.pop(context);
                                   provider.fetchUsersByRole(widget.roleName);

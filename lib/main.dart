@@ -113,23 +113,31 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:testfront/core/config/api_config.dart';
 import 'package:testfront/core/models/RoleProvider.dart';
 import 'package:testfront/core/models/auth_storage.dart';
 import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/providers/VignetteProvider.dart';
+import 'package:testfront/core/providers/depenseProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart'
     show MissionProvider;
 import 'package:testfront/core/providers/notification_provider.dart';
+import 'package:testfront/core/providers/remboursement_provider.dart';
 import 'package:testfront/core/providers/tache_provider.dart';
+import 'package:testfront/core/services/NotificationService.dart';
 import 'package:testfront/core/services/VehiculeProvider.dart';
 import 'package:testfront/core/services/VehiculeService.dart';
+import 'package:testfront/core/services/auth_service.dart';
+import 'package:testfront/core/services/signalr_client.dart';
 import 'package:testfront/features/auth/login_screen.dart';
 import 'package:testfront/features/auth/register_screen.dart';
 import 'package:testfront/features/auth/conditions_screen.dart';
-import 'package:testfront/features/dashbords/WebDashboard.dart';
 import 'package:testfront/features/home/home_screen.dart';
+import 'package:testfront/features/home/noti.dart';
 import 'package:testfront/features/mission/MissionPage.dart';
 import 'package:testfront/features/mission/MissionPageEmploye.dart';
+import 'package:testfront/features/mission/remboursement/adminRemboursement.dart';
+import 'package:testfront/features/mission/remboursement/remboursementEmploye.dart';
 import 'package:testfront/features/profile/ForgotPasswordScreen.dart';
 import 'package:testfront/features/profile/change_password_screen.dart';
 import 'package:testfront/features/profile/profile_screen.dart';
@@ -145,6 +153,10 @@ import 'package:app_links/app_links.dart';
 import 'package:testfront/features/vehicule/vehicueScreen.dart';
 
 void main() {
+ // Initialisation des services
+  final authService = AuthService();
+
+
   runApp(
     MultiProvider(
       providers: [
@@ -152,11 +164,26 @@ void main() {
         ChangeNotifierProvider(create: (_) => VehiculeProvider()),
         ChangeNotifierProvider(create: (_) => VignetteProvider()),
         ChangeNotifierProvider(create: (_) => MissionProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
-        ChangeNotifierProvider(create: (_) => TacheProvider()),
+ Provider<AuthService>(create: (_) => authService),
+       ChangeNotifierProxyProvider<AuthService, NotificationService>(
+          create: (context) => NotificationService(
+            baseUrl: ApiConfig.baseUrl,
+            getToken: () async => AuthService.getToken(),
+          ),
+          update: (context, authService, previousNotificationService) {
+            // Si le service existe déjà, on le retourne
+            // Sinon on en crée un nouveau
+            return previousNotificationService ?? NotificationService(
+              baseUrl: ApiConfig.baseUrl,
+              getToken: () async => AuthService.getToken(),
+            );
+          },
+        ),
+               ChangeNotifierProvider(create: (_) => TacheProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
+        ChangeNotifierProvider(create: (_) => DepenseProvider()),
+        ChangeNotifierProvider(create: (_) => RemboursementProvider()),
       ],
-
       child: const MyApp(),
     ),
   );
@@ -192,6 +219,10 @@ class MyApp extends StatelessWidget {
         '/vehicule': (_) => VehiculeScreen(),
         '/mission': (_) => MissionsScreen(),
         '/missionEmploye': (_) => MissionsScreenEmploye(),
+        '/mesRemboursements': (_) => MesRemboursementsScreen(),
+                '/remboursementAdmin': (_) => AdminRemboursementsScreen(),
+                '/noti': (_) => noti(),
+
 
         //'/dashbord': (_) => PizzaMailApp(),
         /*'/home':
