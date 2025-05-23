@@ -3,48 +3,34 @@ import 'package:testfront/core/models/notification_dto.dart';
 import 'package:testfront/core/services/NotificationService.dart';
 
 class NotificationProvider with ChangeNotifier {
-  final NotificationService _notificationService;
+  final NotificationService _notificationService = NotificationService();
 
   List<NotificationDto> _notifications = [];
-  int _unreadCount = 0;
-
-  NotificationProvider(this._notificationService) {
-    _listenToNotifications();
-    fetchNotifications();
-    fetchUnreadCount();
-  }
+  bool _isLoading = false;
 
   List<NotificationDto> get notifications => _notifications;
-  int get unreadCount => _unreadCount;
+  bool get isLoading => _isLoading;
 
-  void _listenToNotifications() {
-    _notificationService.notificationsStream.listen((notification) {
-      _notifications.insert(0, notification);
-      _unreadCount++;
-      notifyListeners();
-    });
-  }
+  int get unreadCount => _notifications.where((n) => !n.isRead).length;
 
-  Future<void> fetchNotifications() async {
-    final response = await _notificationService.fetchNotifications();
+  Future<void> loadNotifications() async {
+    _isLoading = true;
+    notifyListeners();
+
+    final response = await _notificationService.fetchUserNotifications();
+
     if (response.success && response.data != null) {
       _notifications = response.data!;
-      notifyListeners();
     }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
-  Future<void> fetchUnreadCount() async {
-    final response = await _notificationService.fetchUnreadCount();
-    if (response.success && response.data != null) {
-      _unreadCount = response.data!;
-      notifyListeners();
-    }
-  }
-
-  Future<void> markAsRead(int notificationId) async {
-    final response = await _notificationService.markNotificationAsRead(notificationId);
-    if (response.success) {
-      final index = _notifications.indexWhere((n) => n.id == notificationId);
+  Future<void> markAsRead(int id) async {
+    final success = await _notificationService.markAsRead(id);
+    if (success) {
+      final index = _notifications.indexWhere((n) => n.id == id);
       if (index != -1) {
         _notifications[index] = NotificationDto(
           id: _notifications[index].id,
@@ -53,9 +39,33 @@ class NotificationProvider with ChangeNotifier {
           isRead: true,
           createdAt: _notifications[index].createdAt,
         );
-        _unreadCount = _notifications.where((n) => !n.isRead).length;
         notifyListeners();
       }
     }
+  }
+
+  Future<void> markAllAsRead() async {
+    final success = await _notificationService.markAllAsRead();
+    if (success) {
+      _notifications = _notifications.map((n) => NotificationDto(
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        isRead: true,
+        createdAt: n.createdAt,
+      )).toList();
+
+      notifyListeners();
+    }
+  }
+
+  void addNotification(NotificationDto notification) {
+    _notifications.insert(0, notification); // On ajoute en haut de la liste
+    notifyListeners();
+  }
+
+  void clear() {
+    _notifications.clear();
+    notifyListeners();
   }
 }

@@ -7,7 +7,9 @@ import 'package:testfront/core/models/MoyenTransport.dart';
 import 'package:testfront/core/models/PrioriteMission.dart';
 import 'package:testfront/core/models/StatutMission.dart';
 import 'package:testfront/core/models/VehiculeDTO.dart';
+import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
+import 'package:testfront/core/providers/rapportProvider.dart';
 import 'package:testfront/core/providers/tache_provider.dart';
 import 'package:testfront/features/mission/TacheMission.dart';
 
@@ -56,6 +58,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MissionProvider>().loadMissions();
     });
+
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
@@ -92,10 +95,13 @@ class _MissionsScreenState extends State<MissionsScreen> {
       appBar: AppBar(
         title: const Text('Gestion des Missions'),
         centerTitle: true,
-        backgroundColor: const Color(0xFF2A5298),
+        backgroundColor: const Color.fromARGB(255, 243, 243, 243),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(
+              Icons.refresh,
+              color: Color.fromARGB(255, 7, 7, 7),
+            ),
             onPressed: () => context.read<MissionProvider>().loadMissions(),
           ),
         ],
@@ -171,7 +177,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.add, size: 18, color: Colors.white),
-                        SizedBox(width: 8),
+                        SizedBox(width: 5),
                         Text(
                           'Créer une mission',
                           style: TextStyle(color: Colors.white),
@@ -246,7 +252,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                       children: [
                         // Champ de recherche avec largeur fixe
                         SizedBox(
-                          width: 300,
+                          width: 150,
                           child: TextField(
                             controller: _searchController,
                             style: const TextStyle(fontSize: 16),
@@ -262,14 +268,14 @@ class _MissionsScreenState extends State<MissionsScreen> {
                           ),
                         ),
 
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 6),
 
                         // Bouton Ajouter avec icône et texte
                         ElevatedButton.icon(
                           onPressed: () => _showAddMissionDialog(context),
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
+                              horizontal: 5,
                               vertical: 16,
                             ),
                             backgroundColor: const Color(0xFF2A5298),
@@ -294,6 +300,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
 
                     // Ligne des filtres et boutons de tri
                     Wrap(
+                      spacing: 20, // espace horizontal entre chaque enfant
+                      runSpacing: 10, // espace vertical si à la ligne
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<StatutMission>(
@@ -327,7 +335,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 20),
                         Expanded(
                           child: DropdownButtonFormField<PrioriteMission>(
                             value: _selectedPrioriteFilter,
@@ -338,8 +346,8 @@ class _MissionsScreenState extends State<MissionsScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
+                                horizontal: 6,
+                                vertical: 6,
                               ),
                             ),
                             items: [
@@ -361,7 +369,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 20),
 
                         // Boutons de tri alignés avec les filtres
                         IconButton(
@@ -529,22 +537,52 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 style: TextStyle(color: Colors.grey.shade600),
               ),
               const SizedBox(height: 12),
-              Row(
+              Wrap(
+                direction: Axis.vertical,
+                spacing: 4, // espace entre les lignes
+                crossAxisAlignment: WrapCrossAlignment.start,
                 children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 16,
-                    color: Colors.grey.shade600,
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDate(mission.dateDebutPrevue),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${_formatDate(mission.dateDebutPrevue)} - ${_formatDate(mission.dateFinPrevue)}',
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDate(mission.dateFinPrevue),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
+
               const SizedBox(height: 8),
-              Row(
+              Wrap(
                 children: [
                   Icon(
                     Icons.priority_high,
@@ -643,10 +681,14 @@ class _MissionsScreenState extends State<MissionsScreen> {
   }
 
   void _showMissionDetails(BuildContext context, MissionDTO mission) {
+     final userProvider = Provider.of<UserProvider>(context, listen: false);
+  final userRoles = userProvider.user?.roles ?? [];
+
+  final isAdmin = userRoles.contains('admin'); 
     showDialog(
       context: context,
       builder:
-          (context) => Dialog(
+          (_) => Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -659,6 +701,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // ── En-tête ─────────────────────────────────────────
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -680,122 +723,37 @@ class _MissionsScreenState extends State<MissionsScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Section Principale
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Colonne de gauche (Informations principales)
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildDetailCard(
-                                icon: Icons.description,
-                                title: 'Description',
-                                content: mission.description,
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              _buildDetailCard(
-                                icon: Icons.calendar_today,
-                                title: 'Dates prévues',
-                                content:
-                                    '${_formatDate(mission.dateDebutPrevue)} - ${_formatDate(mission.dateFinPrevue)}',
-                              ),
-
-                              if (mission.dateDebutReelle != null &&
-                                  mission.dateFinReelle != null) ...[
-                                const SizedBox(height: 8),
-                                _buildDetailCard(
-                                  icon: Icons.event_available,
-                                  title: 'Dates réelles',
-                                  content:
-                                      '${_formatDate(mission.dateDebutReelle!)} - ${_formatDate(mission.dateFinReelle!)}',
+                    // ── Contenu principal responsive ────────────────────
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isSmall = constraints.maxWidth < 600;
+                        return isSmall
+                            ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildLeftDetails(mission),
+                                const SizedBox(height: 16),
+                                _buildRightDetails(mission),
+                              ],
+                            )
+                            : Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: _buildLeftDetails(mission),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 1,
+                                  child: _buildRightDetails(mission),
                                 ),
                               ],
-
-                              const SizedBox(height: 12),
-
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildDetailCard(
-                                      icon: Icons.attach_money,
-                                      title: 'Budget',
-                                      content:
-                                          '${mission.budget.toStringAsFixed(2)} Dt',
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: _buildDetailCard(
-                                      icon: Icons.money_off,
-                                      title: 'Dépenses',
-                                      content:
-                                          mission.depenses != null
-                                              ? '${mission.depenses!.toStringAsFixed(2)} Dt'
-                                              : 'Non spécifié',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Colonne de droite (Métadonnées)
-                        const SizedBox(width: 16),
-
-                        Expanded(
-                          flex: 1,
-                          child: Column(
-                            children: [
-                              _buildStatusBadge(mission),
-                              const SizedBox(height: 16),
-
-                              _buildMetaDataCard(
-                                icon: Icons.priority_high,
-                                title: 'Priorité',
-                                value: _getPrioriteText(mission.priorite),
-                                color: _getPriorityColor(mission.priorite),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              _buildMetaDataCard(
-                                icon: Icons.directions_car,
-                                title: 'Transport',
-                                value: MoyenTransport.asString(
-                                  mission.typeMoyenTransport,
-                                ),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              _buildMetaDataCard(
-                                icon: Icons.person,
-                                title: 'Créée par',
-                                value: mission.creePar,
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              _buildMetaDataCard(
-                                icon: Icons.date_range,
-                                title: 'Date création',
-                                value: DateFormat(
-                                  'dd/MM/yyyy – HH:mm',
-                                ).format(mission.dateCreation),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                            );
+                      },
                     ),
 
-                    // Section Véhicules
+                    // ── Véhicules assignés ─────────────────────────────
                     if (mission.vehicules != null &&
                         mission.vehicules!.isNotEmpty) ...[
                       const SizedBox(height: 16),
@@ -812,27 +770,29 @@ class _MissionsScreenState extends State<MissionsScreen> {
                         spacing: 8,
                         runSpacing: 8,
                         children:
-                            mission.vehicules!.map((v) {
-                              return Chip(
-                                backgroundColor: Colors.blue.shade50,
-                                label: Text(
-                                  '${v.marque} ${v.modele} (${v.immatriculation})',
-                                  style: TextStyle(
-                                    color: Colors.blue.shade800,
-                                    fontSize: 12,
+                            mission.vehicules!
+                                .map(
+                                  (v) => Chip(
+                                    backgroundColor: Colors.blue.shade50,
+                                    label: Text(
+                                      '${v.marque} ${v.modele} (${v.immatriculation})',
+                                      style: TextStyle(
+                                        color: Colors.blue.shade800,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    avatar: const Icon(
+                                      Icons.directions_car,
+                                      size: 16,
+                                      color: Colors.blue,
+                                    ),
                                   ),
-                                ),
-                                avatar: const Icon(
-                                  Icons.directions_car,
-                                  size: 16,
-                                  color: Colors.blue,
-                                ),
-                              );
-                            }).toList(),
+                                )
+                                .toList(),
                       ),
                     ],
 
-                    // Section Employés
+                    // ── Employés assignés ─────────────────────────────
                     const SizedBox(height: 16),
                     const Text(
                       'Employés assignés',
@@ -847,23 +807,25 @@ class _MissionsScreenState extends State<MissionsScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children:
-                          mission.employes.map((e) {
-                            return Chip(
-                              backgroundColor: Colors.green.shade50,
-                              label: Text(
-                                '${e.prenom} ${e.nom}',
-                                style: TextStyle(
-                                  color: Colors.green.shade800,
-                                  fontSize: 12,
+                          mission.employes
+                              .map(
+                                (e) => Chip(
+                                  backgroundColor: Colors.green.shade50,
+                                  label: Text(
+                                    '${e.prenom} ${e.nom}',
+                                    style: TextStyle(
+                                      color: Colors.green.shade800,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  avatar: const Icon(
+                                    Icons.person,
+                                    size: 16,
+                                    color: Colors.green,
+                                  ),
                                 ),
-                              ),
-                              avatar: const Icon(
-                                Icons.person,
-                                size: 16,
-                                color: Colors.green,
-                              ),
-                            );
-                          }).toList(),
+                              )
+                              .toList(),
                     ),
 
                     const SizedBox(height: 24),
@@ -886,6 +848,111 @@ class _MissionsScreenState extends State<MissionsScreen> {
               ),
             ),
           ),
+    );
+  }
+
+  /// Colonne gauche : description, dates prévues & réelles, budget/dépenses
+  Widget _buildLeftDetails(MissionDTO mission) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildStatusBadge(mission),
+        const SizedBox(height: 16),
+
+        _buildDetailCard(
+          icon: Icons.description,
+          title: 'Description',
+          content: mission.description,
+        ),
+
+        const SizedBox(height: 12),
+        // Dates prévues sur deux lignes
+        _buildDetailCard(
+          icon: Icons.calendar_today,
+          title: 'Date début prévue',
+          content: _formatDate(mission.dateDebutPrevue),
+        ),
+        const SizedBox(height: 8),
+        _buildDetailCard(
+          icon: Icons.calendar_today,
+          title: 'Date fin prévue',
+          content: _formatDate(mission.dateFinPrevue),
+        ),
+
+        if (mission.dateDebutReelle != null &&
+            mission.dateFinReelle != null) ...[
+          const SizedBox(height: 12),
+          _buildDetailCard(
+            icon: Icons.event_available,
+            title: 'Date début réelle',
+            content: _formatDate(mission.dateDebutReelle!),
+          ),
+          const SizedBox(height: 8),
+          _buildDetailCard(
+            icon: Icons.event_available,
+            title: 'Date fin réelle',
+            content: _formatDate(mission.dateFinReelle!),
+          ),
+        ],
+
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildDetailCard(
+                icon: Icons.attach_money,
+                title: 'Budget',
+                content: '${mission.budget.toStringAsFixed(2)} Dt',
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildDetailCard(
+                icon: Icons.money_off,
+                title: 'Dépenses',
+                content:
+                    mission.depenses != null
+                        ? '${mission.depenses!.toStringAsFixed(2)} Dt'
+                        : 'Non spécifié',
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Colonne droite : statut, priorité, transport, créateur, date création
+  Widget _buildRightDetails(MissionDTO mission) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildMetaDataCard(
+          icon: Icons.priority_high,
+          title: 'Priorité',
+          value: _getPrioriteText(mission.priorite),
+          color: _getPriorityColor(mission.priorite),
+        ),
+
+        const SizedBox(height: 8),
+        _buildMetaDataCard(
+          icon: Icons.directions_car,
+          title: 'Transport',
+          value: MoyenTransport.asString(mission.typeMoyenTransport),
+        ),
+        const SizedBox(height: 8),
+        _buildMetaDataCard(
+          icon: Icons.person,
+          title: 'Créée par',
+          value: mission.creePar,
+        ),
+        const SizedBox(height: 8),
+        _buildMetaDataCard(
+          icon: Icons.date_range,
+          title: 'Date création',
+          value: DateFormat('dd/MM/yyyy – HH:mm').format(mission.dateCreation),
+        ),
+      ],
     );
   }
 
@@ -1255,7 +1322,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                                   ),
                                 ),
                               ),
-                           
+
                             const SizedBox(height: 16),
                             DropdownButtonFormField<PrioriteMission>(
                               value: selectedPriorite,
@@ -1491,7 +1558,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
                               )) {
                                 _fieldErrors['dates'] = 'Date début > date fin';
                               }
-                              
+
                               if (_typeTransport == MoyenTransport.Vehicule &&
                                   _selectedVehiculeIds.isEmpty) {
                                 _fieldErrors['vehicules'] =
@@ -1611,506 +1678,507 @@ class _MissionsScreenState extends State<MissionsScreen> {
     final _descriptionController = TextEditingController(
       text: mission.description,
     );
-    
-
     DateTime? _dateDebutPrevue = mission.dateDebutPrevue;
     DateTime? _dateFinPrevue = mission.dateFinPrevue;
     MoyenTransport _typeTransport = MoyenTransport.fromInt(
       mission.typeMoyenTransport.index,
     );
+    PrioriteMission selectedPriorite = mission.priorite;
     List<int> _selectedVehiculeIds =
         mission.vehicules?.map((v) => v.vehiculeId).toList() ?? [];
     Map<String, String> _fieldErrors = {};
-    PrioriteMission selectedPriorite = mission.priorite;
     List<VehiculeDTO> _vehiculesExistants = mission.vehicules ?? [];
 
     showDialog(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              insetPadding: const EdgeInsets.all(20),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              backgroundColor: Colors.transparent,
-              child: Container(
-                decoration: _dialogDecoration,
-                padding: const EdgeInsets.all(24),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder:
+          (_) => StatefulBuilder(
+            builder:
+                (context, setState) => Dialog(
+                  insetPadding: const EdgeInsets.all(20),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  backgroundColor: Colors.transparent,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    padding: const EdgeInsets.all(24),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'Modifier ${mission.titre}',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2A5298),
-                            ),
+                          // En-tête
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Modifier ${mission.titre}',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2A5298),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Form(
-                        key: _formKey,
-                        child: Column(
-                          children: [
-                            _buildDialogTextField(
-                              controller: _titreController,
-                              label: 'Titre *',
-                              icon: Icons.title,
-                              errorText: _fieldErrors['titre'],
-                            ),
-                            const SizedBox(height: 16),
-                            _buildDialogTextField(
-                              controller: _descriptionController,
-                              label: 'Description',
-                              icon: Icons.description,
-                              maxLines: 3,
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
+                          const SizedBox(height: 16),
+
+                          // Formulaire
+                          Form(
+                            key: _formKey,
+                            child: Column(
                               children: [
-                                Expanded(
-                                  child: InkWell(
-                                    onTap: () async {
-                                      final date = await showDatePicker(
-                                        context: context,
-                                        initialDate:
-                                            _dateDebutPrevue ?? DateTime.now(),
-                                        firstDate: DateTime.now(),
-                                        lastDate: DateTime(2100),
-                                      );
-                                      if (date != null) {
-                                        final time = await showTimePicker(
-                                          context: context,
-                                          initialTime:
-                                              _dateDebutPrevue != null
-                                                  ? TimeOfDay.fromDateTime(
-                                                    _dateDebutPrevue!,
-                                                  )
-                                                  : TimeOfDay.now(),
-                                        );
-                                        if (time != null) {
-                                          final fullDateTime = DateTime(
-                                            date.year,
-                                            date.month,
-                                            date.day,
-                                            time.hour,
-                                            time.minute,
-                                          );
-                                          setState(() {
-                                            _dateDebutPrevue = fullDateTime;
-                                            _selectedVehiculeIds = [];
-                                          });
-                                        }
-                                      }
-                                    },
+                                _buildDialogTextField(
+                                  controller: _titreController,
+                                  label: 'Titre *',
+                                  icon: Icons.title,
+                                  errorText: _fieldErrors['titre'],
+                                ),
+                                const SizedBox(height: 16),
+                                _buildDialogTextField(
+                                  controller: _descriptionController,
+                                  label: 'Description',
+                                  icon: Icons.description,
+                                  maxLines: 3,
+                                ),
+                                const SizedBox(height: 16),
 
-                                    child: InputDecorator(
-                                      decoration: InputDecoration(
-                                        labelText: 'Date début *',
-                                        prefixIcon: const Icon(
-                                          Icons.calendar_today,
+                                // Sélection des dates
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () async {
+                                          final date = await showDatePicker(
+                                            context: context,
+                                            initialDate:
+                                                _dateDebutPrevue ??
+                                                DateTime.now(),
+                                            firstDate: DateTime.now(),
+                                            lastDate: DateTime(2100),
+                                          );
+                                          if (date != null) {
+                                            final time = await showTimePicker(
+                                              context: context,
+                                              initialTime:
+                                                  _dateDebutPrevue != null
+                                                      ? TimeOfDay.fromDateTime(
+                                                        _dateDebutPrevue!,
+                                                      )
+                                                      : TimeOfDay.now(),
+                                            );
+                                            if (time != null) {
+                                              setState(() {
+                                                _dateDebutPrevue = DateTime(
+                                                  date.year,
+                                                  date.month,
+                                                  date.day,
+                                                  time.hour,
+                                                  time.minute,
+                                                );
+                                              });
+                                            }
+                                          }
+                                        },
+                                        child: InputDecorator(
+                                          decoration: InputDecoration(
+                                            labelText: 'Date début *',
+                                            prefixIcon: const Icon(
+                                              Icons.calendar_today,
+                                            ),
+                                            border: const OutlineInputBorder(),
+                                            errorText: _fieldErrors['dates'],
+                                            filled: true,
+                                            fillColor: Colors.grey.shade50,
+                                          ),
+                                          child: Text(
+                                            _dateDebutPrevue != null
+                                                ? DateFormat(
+                                                  'dd/MM/yyyy – HH:mm',
+                                                ).format(_dateDebutPrevue!)
+                                                : 'Sélectionner',
+                                          ),
                                         ),
-                                        border: const OutlineInputBorder(),
-                                        errorText: _fieldErrors['dates'],
-                                        filled: true,
-                                        fillColor: Colors.grey.shade50,
                                       ),
-                                      child: Text(
-                                        _dateDebutPrevue != null
-                                            ? DateFormat(
-                                              'dd/MM/yyyy– HH:mm',
-                                            ).format(_dateDebutPrevue!)
-                                            : 'Sélectionner',
+                                    ),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () async {
+                                          final date = await showDatePicker(
+                                            context: context,
+                                            initialDate:
+                                                _dateFinPrevue ??
+                                                _dateDebutPrevue ??
+                                                DateTime.now(),
+                                            firstDate:
+                                                _dateDebutPrevue ??
+                                                DateTime.now(),
+                                            lastDate: DateTime(2100),
+                                          );
+                                          if (date != null) {
+                                            final time = await showTimePicker(
+                                              context: context,
+                                              initialTime:
+                                                  _dateFinPrevue != null
+                                                      ? TimeOfDay.fromDateTime(
+                                                        _dateFinPrevue!,
+                                                      )
+                                                      : TimeOfDay.now(),
+                                            );
+                                            if (time != null) {
+                                              setState(() {
+                                                _dateFinPrevue = DateTime(
+                                                  date.year,
+                                                  date.month,
+                                                  date.day,
+                                                  time.hour,
+                                                  time.minute,
+                                                );
+                                              });
+                                            }
+                                          }
+                                        },
+                                        child: InputDecorator(
+                                          decoration: InputDecoration(
+                                            labelText: 'Date fin *',
+                                            prefixIcon: const Icon(
+                                              Icons.calendar_today,
+                                            ),
+                                            border: const OutlineInputBorder(),
+                                            errorText: _fieldErrors['dates'],
+                                            filled: true,
+                                            fillColor: Colors.grey.shade50,
+                                          ),
+                                          child: Text(
+                                            _dateFinPrevue != null
+                                                ? DateFormat(
+                                                  'dd/MM/yyyy – HH:mm',
+                                                ).format(_dateFinPrevue!)
+                                                : 'Sélectionner',
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_fieldErrors.containsKey('dates'))
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      _fieldErrors['dates']!,
+                                      style: const TextStyle(
+                                        color: Colors.red,
+                                        fontSize: 12,
                                       ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: InkWell(
-                                    onTap: () async {
-                                      final date = await showDatePicker(
-                                        context: context,
-                                        initialDate:
-                                            _dateFinPrevue ??
-                                            _dateDebutPrevue ??
-                                            DateTime.now(),
-                                        firstDate:
-                                            _dateDebutPrevue ?? DateTime.now(),
-                                        lastDate: DateTime(2100),
-                                      );
-                                      if (date != null) {
-                                        final time = await showTimePicker(
-                                          context: context,
-                                          initialTime:
-                                              _dateFinPrevue != null
-                                                  ? TimeOfDay.fromDateTime(
-                                                    _dateFinPrevue!,
-                                                  )
-                                                  : TimeOfDay.now(),
-                                        );
-                                        if (time != null) {
-                                          final fullDateTime = DateTime(
-                                            date.year,
-                                            date.month,
-                                            date.day,
-                                            time.hour,
-                                            time.minute,
-                                          );
-                                          setState(() {
-                                            _dateFinPrevue = fullDateTime;
-                                            _selectedVehiculeIds = [];
-                                          });
-                                        }
-                                      }
-                                    },
+                                const SizedBox(height: 16),
 
-                                    child: InputDecorator(
-                                      decoration: InputDecoration(
-                                        labelText: 'Date fin *',
-                                        prefixIcon: const Icon(
-                                          Icons.calendar_today,
-                                        ),
-                                        border: const OutlineInputBorder(),
-                                        errorText: _fieldErrors['dates'],
-                                        filled: true,
-                                        fillColor: Colors.grey.shade50,
-                                      ),
-                                      child: Text(
-                                        _dateFinPrevue != null
-                                            ? DateFormat(
-                                              'dd/MM/yyyy– HH:mm',
-                                            ).format(_dateFinPrevue!)
-                                            : 'Sélectionner',
-                                      ),
+                                // Priorité
+                                DropdownButtonFormField<PrioriteMission>(
+                                  value: selectedPriorite,
+                                  decoration: InputDecoration(
+                                    labelText: 'Priorité *',
+                                    prefixIcon: const Icon(Icons.priority_high),
+                                    border: const OutlineInputBorder(),
+                                    errorText: _fieldErrors['priorite'],
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
+                                  ),
+                                  items:
+                                      PrioriteMission.values
+                                          .map(
+                                            (p) => DropdownMenuItem(
+                                              value: p,
+                                              child: Text(_getPrioriteText(p)),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged:
+                                      (v) => setState(() {
+                                        if (v != null) selectedPriorite = v;
+                                      }),
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Moyen de transport
+                                DropdownButtonFormField<MoyenTransport>(
+                                  value: _typeTransport,
+                                  decoration: InputDecoration(
+                                    labelText: 'Type transport *',
+                                    prefixIcon: const Icon(
+                                      Icons.directions_car,
                                     ),
+                                    border: const OutlineInputBorder(),
+                                    filled: true,
+                                    fillColor: Colors.grey.shade50,
                                   ),
+                                  items:
+                                      MoyenTransport.values
+                                          .map(
+                                            (t) => DropdownMenuItem(
+                                              value: t,
+                                              child: Text(
+                                                MoyenTransport.asString(t),
+                                              ),
+                                            ),
+                                          )
+                                          .toList(),
+                                  onChanged:
+                                      (v) => setState(() {
+                                        if (v != null) {
+                                          _typeTransport = v;
+                                        }
+                                      }),
                                 ),
-                              ],
-                            ),
-                            if (_fieldErrors.containsKey('dates'))
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  _fieldErrors['dates']!,
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            const SizedBox(height: 16),
-                          
-                            const SizedBox(height: 16),
-                            DropdownButtonFormField<PrioriteMission>(
-                              value: selectedPriorite,
-                              decoration: InputDecoration(
-                                labelText: 'Priorité *',
-                                prefixIcon: const Icon(Icons.priority_high),
-                                border: const OutlineInputBorder(),
-                                errorText: _fieldErrors['priorite'],
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                              ),
-                              items:
-                                  PrioriteMission.values.map((priorite) {
-                                    return DropdownMenuItem(
-                                      value: priorite,
-                                      child: Text(_getPrioriteText(priorite)),
-                                    );
-                                  }).toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() => selectedPriorite = value);
-                                }
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            DropdownButtonFormField<MoyenTransport>(
-                              value: _typeTransport,
-                              decoration: InputDecoration(
-                                labelText: 'Type transport *',
-                                prefixIcon: const Icon(Icons.directions_car),
-                                border: const OutlineInputBorder(),
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                              ),
-                              items:
-                                  MoyenTransport.values.map((type) {
-                                    return DropdownMenuItem(
-                                      value: type,
-                                      child: Text(
-                                        MoyenTransport.asString(type),
-                                      ),
-                                    );
-                                  }).toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  setState(() {
-                                    _typeTransport = value;
-                                    _selectedVehiculeIds = [];
-                                  });
-                                }
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            if (_typeTransport == MoyenTransport.Vehicule) ...[
-                              const SizedBox(height: 16),
-                              Consumer<MissionProvider>(
-                                builder: (context, provider, _) {
-                                  final vehiculesDisponibles =
-                                      provider.vehiculesDisponibles;
 
-                                  // Afficher d'abord les véhicules existants
-                                  return Column(
-                                    children: [
-                                      if (_vehiculesExistants.isNotEmpty)
-                                        Column(
-                                          children: [
+                                // Véhicules
+                                if (_typeTransport ==
+                                    MoyenTransport.Vehicule) ...[
+                                  const SizedBox(height: 16),
+                                  Consumer<MissionProvider>(
+                                    builder: (ctx, provider, _) {
+                                      final dispo =
+                                          provider.vehiculesDisponibles;
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (_vehiculesExistants
+                                              .isNotEmpty) ...[
                                             const Text(
                                               'Véhicule(s) actuel(s):',
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            ..._vehiculesExistants.map((
-                                              vehicle,
-                                            ) {
+                                            ..._vehiculesExistants.map((veh) {
                                               return CheckboxListTile(
                                                 title: Text(
-                                                  '${vehicle.marque} ${vehicle.modele} (${vehicle.immatriculation})',
-                                                  style: TextStyle(
-                                                    color:
-                                                        provider.vehiculesDisponibles.any(
-                                                              (v) =>
-                                                                  v.vehiculeeId ==
-                                                                  vehicle
-                                                                      .vehiculeId,
-                                                            )
-                                                            ? null
-                                                            : Colors
-                                                                .grey, // Grisé si indisponible
-                                                  ),
+                                                  '${veh.marque} ${veh.modele} (${veh.immatriculation})',
                                                 ),
                                                 value: _selectedVehiculeIds
-                                                    .contains(
-                                                      vehicle.vehiculeId,
-                                                    ),
-                                                onChanged: (bool? selected) {
-                                                  setState(() {
-                                                    if (selected == true) {
-                                                      _selectedVehiculeIds.add(
-                                                        vehicle.vehiculeId,
-                                                      );
-                                                    } else {
-                                                      _selectedVehiculeIds
-                                                          .remove(
-                                                            vehicle.vehiculeId,
-                                                          );
-                                                    }
-                                                  });
-                                                },
+                                                    .contains(veh.vehiculeId),
+                                                onChanged:
+                                                    (sel) => setState(() {
+                                                      if (sel == true) {
+                                                        _selectedVehiculeIds
+                                                            .add(
+                                                              veh.vehiculeId,
+                                                            );
+                                                      } else {
+                                                        _selectedVehiculeIds
+                                                            .remove(
+                                                              veh.vehiculeId,
+                                                            );
+                                                      }
+                                                    }),
                                                 controlAffinity:
                                                     ListTileControlAffinity
                                                         .leading,
                                               );
                                             }),
+                                            if (dispo.isNotEmpty)
+                                              const Divider(),
                                           ],
-                                        ),
-
-                                      // Séparateur
-                                      if (_vehiculesExistants.isNotEmpty &&
-                                          provider
-                                              .vehiculesDisponibles
-                                              .isNotEmpty)
-                                        const Divider(),
-
-                                      // Afficher les véhicules disponibles
-                                      if (provider
-                                          .vehiculesDisponibles
-                                          .isNotEmpty)
-                                        Column(
-                                          children: [
+                                          if (dispo
+                                              .where(
+                                                (v) =>
+                                                    !_vehiculesExistants.any(
+                                                      (e) =>
+                                                          e.vehiculeId ==
+                                                          v.vehiculeeId,
+                                                    ),
+                                              )
+                                              .isNotEmpty) ...[
                                             const Text(
-                                              ' véhicules disponibles:',
+                                              'Véhicules disponibles:',
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            ...provider.vehiculesDisponibles
+                                            ...dispo
                                                 .where(
                                                   (v) =>
                                                       !_vehiculesExistants.any(
-                                                        (exist) =>
-                                                            exist.vehiculeId ==
+                                                        (e) =>
+                                                            e.vehiculeId ==
                                                             v.vehiculeeId,
                                                       ),
                                                 )
-                                                .map((vehicle) {
+                                                .map((veh) {
                                                   return CheckboxListTile(
                                                     title: Text(
-                                                      '${vehicle.marque} ${vehicle.modele} (${vehicle.immatriculation})',
+                                                      '${veh.marque} ${veh.modele} (${veh.immatriculation})',
                                                     ),
                                                     value: _selectedVehiculeIds
                                                         .contains(
-                                                          vehicle.vehiculeeId,
+                                                          veh.vehiculeeId,
                                                         ),
-                                                    onChanged: (
-                                                      bool? selected,
-                                                    ) {
-                                                      setState(() {
-                                                        if (selected == true) {
-                                                          _selectedVehiculeIds
-                                                              .add(
-                                                                vehicle
-                                                                    .vehiculeeId,
-                                                              );
-                                                        } else {
-                                                          _selectedVehiculeIds
-                                                              .remove(
-                                                                vehicle
-                                                                    .vehiculeeId,
-                                                              );
-                                                        }
-                                                      });
-                                                    },
+                                                    onChanged:
+                                                        (sel) => setState(() {
+                                                          if (sel == true) {
+                                                            _selectedVehiculeIds
+                                                                .add(
+                                                                  veh.vehiculeeId,
+                                                                );
+                                                          } else {
+                                                            _selectedVehiculeIds
+                                                                .remove(
+                                                                  veh.vehiculeeId,
+                                                                );
+                                                          }
+                                                        }),
                                                     controlAffinity:
                                                         ListTileControlAffinity
                                                             .leading,
                                                   );
                                                 }),
                                           ],
-                                        ),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Annuler'),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            style: _dialogButtonStyle,
-                            onPressed: () async {
-                              _fieldErrors = {};
-
-                              if (_titreController.text.isEmpty) {
-                                _fieldErrors['titre'] = 'Champ obligatoire';
-                              }
-                              if (_dateDebutPrevue == null ||
-                                  _dateFinPrevue == null) {
-                                _fieldErrors['dates'] = 'Dates obligatoires';
-                              } else if (_dateDebutPrevue!.isAfter(
-                                _dateFinPrevue!,
-                              )) {
-                                _fieldErrors['dates'] = 'Date début > date fin';
-                              }
-                             
-                              if (_typeTransport == MoyenTransport.Vehicule &&
-                                  _selectedVehiculeIds.isEmpty) {
-                                _fieldErrors['vehicules'] =
-                                    'Sélectionnez au moins un véhicule';
-                              }
-
-                              setState(() {});
-
-                              if (_fieldErrors.isEmpty) {
-                                final missionDTO = MissionCreationDTO(
-                                  titre: _titreController.text,
-                                  description: _descriptionController.text,
-                                  dateDebutPrevue: _dateDebutPrevue!,
-                                  dateFinPrevue: _dateFinPrevue!,
-                                  priorite: selectedPriorite.index,
-                                  typeMoyenTransport: _typeTransport.index,
-                                  vehiculeeIds:
-                                      _typeTransport == MoyenTransport.Vehicule
-                                          ? _selectedVehiculeIds
-                                          : [],
-                                );
-
-                                try {
-                                  final success = await context
-                                      .read<MissionProvider>()
-                                      .updateMission(
-                                        mission.missionId,
-                                        missionDTO,
+                                          if (_fieldErrors.containsKey(
+                                            'vehicules',
+                                          ))
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 8,
+                                              ),
+                                              child: Text(
+                                                _fieldErrors['vehicules']!,
+                                                style: const TextStyle(
+                                                  color: Colors.red,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ),
+                                        ],
                                       );
+                                    },
+                                  ),
+                                ],
 
-                                  if (success && mounted) {
-                                    Navigator.pop(context);
-                                    _updateDepenseEtTotal();
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text(
-                                          'Mission mise à jour avec succès',
-                                        ),
-                                        backgroundColor: Colors.green.shade600,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
+                                const SizedBox(height: 24),
+
+                                // Boutons
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Annuler'),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    ElevatedButton(
+                                      onPressed: () async {
+                                        _fieldErrors.clear();
+                                        if (_titreController.text.isEmpty) {
+                                          _fieldErrors['titre'] =
+                                              'Champ obligatoire';
+                                        }
+                                        if (_dateDebutPrevue == null ||
+                                            _dateFinPrevue == null) {
+                                          _fieldErrors['dates'] =
+                                              'Dates obligatoires';
+                                        } else if (_dateDebutPrevue!.isAfter(
+                                          _dateFinPrevue!,
+                                        )) {
+                                          _fieldErrors['dates'] =
+                                              'Date début > date fin';
+                                        }
+                                        if (_typeTransport ==
+                                                MoyenTransport.Vehicule &&
+                                            _selectedVehiculeIds.isEmpty) {
+                                          _fieldErrors['vehicules'] =
+                                              'Sélectionnez au moins un véhicule';
+                                        }
+                                        setState(() {});
+                                        if (_fieldErrors.isEmpty) {
+                                          final dto = MissionCreationDTO(
+                                            titre: _titreController.text,
+                                            description:
+                                                _descriptionController.text,
+                                            dateDebutPrevue: _dateDebutPrevue!,
+                                            dateFinPrevue: _dateFinPrevue!,
+                                            priorite: selectedPriorite.index,
+                                            typeMoyenTransport:
+                                                _typeTransport.index,
+                                            vehiculeeIds:
+                                                _typeTransport ==
+                                                        MoyenTransport.Vehicule
+                                                    ? _selectedVehiculeIds
+                                                    : [],
+                                          );
+                                          try {
+                                            final success = await context
+                                                .read<MissionProvider>()
+                                                .updateMission(
+                                                  mission.missionId,
+                                                  dto,
+                                                );
+                                            if (success && mounted) {
+                                              Navigator.pop(context);
+                                              _updateDepenseEtTotal();
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: const Text(
+                                                    'Mission mise à jour avec succès',
+                                                  ),
+                                                  backgroundColor:
+                                                      Colors.green.shade600,
+                                                ),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Erreur: $e'),
+                                                backgroundColor:
+                                                    Colors.red.shade600,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.save,
+                                            size: 18,
+                                            color: Colors.white,
                                           ),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Erreur: ${e.toString()}'),
-                                      backgroundColor: Colors.red.shade600,
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Sauvegarder',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  );
-                                }
-                              }
-                            },
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.save, size: 18, color: Colors.white),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Sauvegarder',
-                                  style: TextStyle(color: Colors.white),
+                                  ],
                                 ),
                               ],
                             ),
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+          ),
     );
   }
 

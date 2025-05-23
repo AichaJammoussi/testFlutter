@@ -8,7 +8,7 @@ class ApiConfig {
     if (kIsWeb) {
       return 'https://localhost:7261'; // Web
     } else {
-      return 'https://8727-197-2-254-9.ngrok-free.app'; // Mobile (émulateur)
+      return 'https://8cff-2001-ac8-20-c000-20da-7171-455b-c7cb.ngrok-free.app'; // Mobile (émulateur)
     }
   }
 
@@ -45,6 +45,5 @@ class ApiConfig {
   static const String notifications = '/api/Notifications';
   static const String taches = '/api/Taches';
   static const String depenses = '/api/Depense';
-    static const String remboursements = '/api/Remboursements';
-
+  static const String remboursements = '/api/Remboursements';
 }

@@ -9,6 +9,8 @@ import 'package:testfront/core/models/auth_storage.dart';
 import 'package:testfront/core/models/response.dart';
 import 'package:testfront/core/models/tache_creation_dto.dart';
 import 'package:testfront/core/models/tache_dto.dart';
+import 'package:testfront/core/models/user.dart';
+import 'package:testfront/core/models/userDTOUser.dart';
 import 'package:testfront/core/services/auth_service.dart';
 
 class UserService {
@@ -58,4 +60,41 @@ class UserService {
       );
     }
   }
+  Future<ResponseDTO<Userdtouser>> getUserByIdUser(String id) async {
+  try {
+    final url = Uri.parse('$_baseUrl/api/Profile/user/$id');
+    final headers = await _getHeaders();
+
+    print('>>> [getUserByIdUser] URL: $url');
+    print('>>> [getUserByIdUser] Headers: $headers');
+
+    final response = await http.get(url, headers: headers);
+
+    print('>>> [getUserByIdUser] Response status: ${response.statusCode}');
+    print('>>> [getUserByIdUser] Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final decoded = json.decode(response.body);
+      print('>>> [getUserByIdUser] Decoded JSON: $decoded');
+
+      return ResponseDTO<Userdtouser>.fromJson(
+        decoded,
+        (data) => Userdtouser.fromJson(data),
+      );
+    } else {
+      return ResponseDTO<Userdtouser>(
+        success: false,
+        message: 'Erreur serveur: ${response.statusCode}',
+        errors: {'http': 'Erreur HTTP ${response.statusCode}'},
+      );
+    }
+  } catch (e) {
+    print('>>> [getUserByIdUser] Exception: $e');
+    return ResponseDTO<Userdtouser>(
+      success: false,
+      message: 'Erreur de connexion: $e',
+    );
+  }
+}
+
 }

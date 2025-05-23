@@ -12,17 +12,17 @@ import 'package:testfront/core/models/TypeDepense.dart';
 import 'package:testfront/core/models/MoyenPaiement.dart';
 
 //juste affichage lel employe fel web wala admin
-class DepensesParTacheScreen extends StatefulWidget {
+class DepensesParTacheScreenAdmin extends StatefulWidget {
   final int tacheId;
 
-  const DepensesParTacheScreen({Key? key, required this.tacheId})
+  const DepensesParTacheScreenAdmin({Key? key, required this.tacheId})
     : super(key: key);
 
   @override
-  State<DepensesParTacheScreen> createState() => _DepenseScreenState();
+  State<DepensesParTacheScreenAdmin> createState() => _DepenseScreenState();
 }
 
-class _DepenseScreenState extends State<DepensesParTacheScreen> {
+class _DepenseScreenState extends State<DepensesParTacheScreenAdmin> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _descriptionController;
   late TextEditingController _montantController;
@@ -113,7 +113,7 @@ class _DepenseScreenState extends State<DepensesParTacheScreen> {
                       : Icon(Icons.receipt, color: Colors.grey, size: 40),
               title: Text(dep.description),
               subtitle: Text(
-                "Montant: $montantFormatted €\nType: $typeLabel | Moyen: $moyenLabel",
+                "Montant: $montantFormatted Dt\nType: $typeLabel | Moyen: $moyenLabel",
               ),
               isThreeLine: true,
               onTap: () => _showDepenseDetails(dep),
@@ -145,7 +145,7 @@ class _DepenseScreenState extends State<DepensesParTacheScreen> {
                 children: [
                   Text("Description: ${depense.description}"),
                   SizedBox(height: 8),
-                  Text("Montant: $montantFormatted €"),
+                  Text("Montant: $montantFormatted Dt"),
                   SizedBox(height: 8),
                   Text("Type de dépense: $typeLabel"),
                   SizedBox(height: 8),

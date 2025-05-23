@@ -6,9 +6,7 @@ import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
 
 class MissionCalendarScreen extends StatefulWidget {
-  final List<String> userRoles;
-
-  const MissionCalendarScreen({super.key, required this.userRoles});
+  const MissionCalendarScreen({Key? key}) : super(key: key);
 
   @override
   State<MissionCalendarScreen> createState() => _MissionCalendarScreenState();
@@ -17,61 +15,307 @@ class MissionCalendarScreen extends StatefulWidget {
 class _MissionCalendarScreenState extends State<MissionCalendarScreen> {
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
-  DateTime? _selectedDay = DateTime.now();
+  DateTime? _selectedDay;
   List<MissionDTO> _allMissions = [];
+  bool _isLoading = true;
+  bool _hasError = false;
+  bool _initialLoadComplete = false;
 
   @override
   void initState() {
     super.initState();
-    _loadMissions();
+    _selectedDay = DateTime.now();
+
+    // Charger les missions après le premier rendu du widget
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final missionProvider = Provider.of<MissionProvider>(context, listen: false);
+      final user = userProvider.user;
+
+      if (user == null) throw Exception('Utilisateur non connecté');
+
+      setState(() {
+        _isLoading = true;
+        _hasError = false;
+      });
+
+      if (user.roles.contains('admin')) {
+        await missionProvider.loadMissions();
+      } else if(!user.roles.contains('admin')){
+        await missionProvider.loadMissionsByUserId(user.id);
+      }else{}
+
+      if (!mounted) return;
+
+      setState(() {
+        _allMissions = missionProvider.missions;
+        _isLoading = false;
+        _initialLoadComplete = true;
+      });
+    } catch (e) {
+      _handleError(e);
+    }
   }
 
   Future<void> _loadMissions() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final missionProvider = Provider.of<MissionProvider>(
-      context,
-      listen: false,
-    );
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
 
-    while (userProvider.user == null) {
-      await Future.delayed(const Duration(milliseconds: 100));
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final missionProvider = Provider.of<MissionProvider>(context, listen: false);
+      final user = userProvider.user;
+
+      if (user == null) throw Exception('Utilisateur non connecté');
+
+      if (user.isAdmin) {
+        await missionProvider.loadMissions();
+      } else {
+        await missionProvider.loadMissionsByUserId(user.id);
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _allMissions = missionProvider.missions;
+        _isLoading = false;
+      });
+    } catch (e) {
+      _handleError(e);
     }
+  }
 
-    final user = userProvider.user!;
-    final roles = widget.userRoles;
-
-    if (roles.contains('admin')) {
-      await missionProvider.loadMissions();
-      print('Admin: toutes les missions chargées');
-    } else {
-      await missionProvider.loadMissionsByUserId(user.id);
-      print('Utilisateur: missions chargées pour userId=${user.id}');
-    }
+  void _handleError(dynamic error) {
+    if (!mounted) return;
 
     setState(() {
-      _allMissions = missionProvider.missions;
+      _isLoading = false;
+      _hasError = true;
     });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Erreur: ${error.toString()}'),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 
   List<MissionDTO> _getMissionsForDay(DateTime day) {
     return _allMissions.where((mission) {
-      final dateDebut = mission.dateDebutReelle ?? mission.dateDebutPrevue;
-      final dateFin = mission.dateFinReelle ?? mission.dateFinPrevue;
-      if (dateDebut == null || dateFin == null) return false;
-      return !day.isBefore(dateDebut) && !day.isAfter(dateFin);
+      final start = mission.dateDebutReelle ?? mission.dateDebutPrevue;
+      final end = mission.dateFinReelle ?? mission.dateFinPrevue;
+      if (start == null || end == null) return false;
+
+      final dayStart = DateTime(day.year, day.month, day.day);
+      final dayEnd = DateTime(day.year, day.month, day.day, 23, 59, 59);
+      final missionStart = DateTime(start.year, start.month, start.day);
+      final missionEnd = DateTime(end.year, end.month, end.day, 23, 59, 59);
+
+      return (dayStart.isAtSameMomentAs(missionStart) || dayStart.isAfter(missionStart)) &&
+          (dayEnd.isAtSameMomentAs(missionEnd) || dayEnd.isBefore(missionEnd));
     }).toList();
   }
 
-  Widget _buildLegendItem(Color color, String label) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+  Widget _buildCalendar() {
+    return Card(
+      elevation: 4,
+      margin: const EdgeInsets.all(8),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: TableCalendar<MissionDTO>(
+          firstDay: DateTime.now().subtract(const Duration(days: 365)),
+          lastDay: DateTime.now().add(const Duration(days: 365)),
+          focusedDay: _focusedDay,
+          calendarFormat: _calendarFormat,
+          selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+          onDaySelected: (selectedDay, focusedDay) {
+            if (!mounted) return;
+            setState(() {
+              _selectedDay = selectedDay;
+              _focusedDay = focusedDay;
+            });
+          },
+          onFormatChanged: (format) {
+            if (!mounted) return;
+            setState(() => _calendarFormat = format);
+          },
+          eventLoader: _getMissionsForDay,
+          calendarStyle: CalendarStyle(
+            markerDecoration: BoxDecoration(
+              color: Colors.blue[400],
+              shape: BoxShape.circle,
+            ),
+            todayDecoration: const BoxDecoration(
+              color: Colors.orange,
+              shape: BoxShape.circle,
+            ),
+            selectedDecoration: const BoxDecoration(
+              color: Colors.green,
+              shape: BoxShape.circle,
+            ),
+          ),
+          headerStyle: const HeaderStyle(
+            formatButtonVisible: true,
+            titleCentered: true,
+          ),
         ),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 14)),
+      ),
+    );
+  }
+
+  Widget _buildMissionList() {
+    final missions = _getMissionsForDay(_selectedDay ?? DateTime.now());
+
+    if (missions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.assignment_outlined, size: 48, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'Aucune mission pour cette date',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: missions.length,
+      itemBuilder: (context, index) => _buildMissionCard(missions[index]),
+    );
+  }
+
+  Widget _buildMissionCard(MissionDTO mission) {
+    final now = DateTime.now();
+    final start = mission.dateDebutReelle ?? mission.dateDebutPrevue;
+    final end = mission.dateFinReelle ?? mission.dateFinPrevue;
+    final isActive = start != null && end != null && now.isAfter(start) && now.isBefore(end);
+    final isLate = end != null && now.isAfter(end);
+    final statusColor = isLate ? Colors.red : (isActive ? Colors.green : Colors.blue);
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  isLate ? Icons.warning : Icons.assignment,
+                  color: statusColor,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    mission.titre ?? 'Mission sans nom',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Chip(
+                  backgroundColor: statusColor.withOpacity(0.2),
+                  label: Text(
+                    isLate ? 'Passée' : (isActive ? 'En cours' : 'Planifiée'),
+                    style: TextStyle(color: statusColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (start != null && end != null)
+              Text(
+                '${start.toLocal().toString().split(' ')[0]} - ${end.toLocal().toString().split(' ')[0]}',
+                style: const TextStyle(color: Colors.grey),
+              ),
+            if (mission.employes?.isNotEmpty ?? false)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Employés: ${mission.employes!.map((e) => '${e.prenom} ${e.nom}').join(', ')}',
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_isLoading && !_initialLoadComplete) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_hasError) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 16),
+            const Text('Erreur de chargement'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadMissions,
+              child: const Text('Réessayer'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_allMissions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.assignment_outlined, size: 48, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text('Aucune mission disponible'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadMissions,
+              child: const Text('Actualiser'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        _buildCalendar(),
+        const SizedBox(height: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Missions pour le ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                _buildMissionList(),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -79,235 +323,17 @@ class _MissionCalendarScreenState extends State<MissionCalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendrier des Missions')),
-      body:
-          _allMissions.isEmpty
-              ? const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.blueAccent,
-                  strokeWidth: 3,
-                ),
-              )
-              : Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    TableCalendar<MissionDTO>(
-                      firstDay: DateTime(2000),
-                      lastDay: DateTime(2050),
-                      focusedDay: _focusedDay,
-                      calendarFormat: _calendarFormat,
-                      selectedDayPredicate:
-                          (day) => isSameDay(_selectedDay, day),
-                      onDaySelected: (selectedDay, focusedDay) {
-                        setState(() {
-                          _selectedDay = selectedDay;
-                          _focusedDay = focusedDay;
-                        });
-                      },
-                      onFormatChanged: (format) {
-                        setState(() {
-                          _calendarFormat = format;
-                        });
-                      },
-                      onPageChanged: (focusedDay) {
-                        _focusedDay = focusedDay;
-                      },
-                      eventLoader: (day) => _getMissionsForDay(day),
-                      calendarStyle: CalendarStyle(
-                        markerDecoration: BoxDecoration(
-                          color: Colors.blue[400],
-                          shape: BoxShape.circle,
-                        ),
-                        todayDecoration: const BoxDecoration(
-                          color: Colors.orange,
-                          shape: BoxShape.circle,
-                        ),
-                        selectedDecoration: const BoxDecoration(
-                          color: Colors.green,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      headerStyle: const HeaderStyle(
-                        formatButtonVisible: true,
-                        titleCentered: true,
-                      ),
-                    ),
-
-                    // Légende
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildLegendItem(Colors.green, 'Active'),
-                          _buildLegendItem(Colors.red, 'En retard'),
-                          _buildLegendItem(Colors.blue[400]!, 'Planifiée'),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    if (_selectedDay != null) ...[
-                      Text(
-                        'Missions pour le ${_selectedDay!.day}/${_selectedDay!.month}/${_selectedDay!.year}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        child:
-                            _getMissionsForDay(_selectedDay!).isEmpty
-                                ? Center(
-                                  child: Text(
-                                    'Aucune mission pour cette date',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                )
-                                : ListView.builder(
-                                  itemCount:
-                                      _getMissionsForDay(_selectedDay!).length,
-                                  itemBuilder: (context, index) {
-                                    final mission =
-                                        _getMissionsForDay(
-                                          _selectedDay!,
-                                        )[index];
-
-                                    final now = DateTime.now();
-                                    final start =
-                                        mission.dateDebutReelle ??
-                                        mission.dateDebutPrevue;
-                                    final end =
-                                        mission.dateFinReelle ??
-                                        mission.dateFinPrevue;
-                                    final isActive =
-                                        (start != null &&
-                                            end != null &&
-                                            now.isAfter(start) &&
-                                            now.isBefore(end));
-                                    final isLate =
-                                        (end != null && now.isAfter(end));
-
-                                    return Card(
-                                      elevation: 4,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      margin: const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                      ),
-                                      child: ListTile(
-                                        contentPadding: const EdgeInsets.all(
-                                          16,
-                                        ),
-                                        leading: Icon(
-                                          isLate
-                                              ? Icons.error
-                                              : Icons.check_circle,
-                                          color:
-                                              isLate
-                                                  ? Colors.red
-                                                  : (isActive
-                                                      ? Colors.green
-                                                      : Colors.grey),
-                                          size: 32,
-                                        ),
-                                        title: Text(
-                                          mission.titre ?? 'Mission sans nom',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 18,
-                                          ),
-                                        ),
-                                        subtitle: Padding(
-                                          padding: const EdgeInsets.only(
-                                            top: 8,
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.people,
-                                                    size: 16,
-                                                    color: Colors.blueGrey,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Flexible(
-                                                    child: Text(
-                                                      'Employés: ${mission.employes?.map((e) => e.nom).join('') ?? 'Non assigné'}',
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.directions_car,
-                                                    size: 16,
-                                                    color: Colors.blueGrey,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Flexible(
-                                                    child: Text(
-                                                      'Véhicules: ${mission.vehicules?.map((v) => v.immatriculation).join(', ') ?? 'Non assigné'}',
-                                                      style: const TextStyle(
-                                                        fontSize: 14,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  const Icon(
-                                                    Icons.schedule,
-                                                    size: 16,
-                                                    color: Colors.blueGrey,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Text(
-                                                    'Période: ${start?.toLocal().toString().split(' ')[0] ?? 'Non définie'} - ${end?.toLocal().toString().split(' ')[0] ?? 'Non définie'}',
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        trailing: IconButton(
-                                          icon: const Icon(
-                                            Icons.info_outline,
-                                            color: Colors.blue,
-                                          ),
-                                          onPressed: () {
-                                            // TODO: Ajouter action détails mission
-                                          },
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
+      appBar: AppBar(
+        title: const Text('Calendrier des Missions'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadMissions,
+            tooltip: 'Actualiser',
+          ),
+        ],
+      ),
+      body: _buildContent(),
     );
   }
 }

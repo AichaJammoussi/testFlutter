@@ -77,7 +77,7 @@ class _MesRemboursementsScreenState extends State<MesRemboursementsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Mes Remboursements'),
-        backgroundColor: const Color(0xFF2A5298),
+        backgroundColor: const Color.fromARGB(255, 253, 254, 255),
       ),
       body: Consumer<RemboursementProvider>(
         builder: (context, provider, _) {
@@ -157,7 +157,7 @@ class _MesRemboursementsScreenState extends State<MesRemboursementsScreen> {
                         Text(
                           '${_getTypeDemandeMessage(remb.montant)}\n'
                           'Montant : ${remb.montant.abs().toStringAsFixed(2)} DT\n'
-                          'Demandé le : ${DateFormat('dd/MM/yyyy').format(remb.dateDemande)}',
+                          'Demandé le : ${DateFormat('dd/MM/yyyy– HH:mm').format(remb.dateDemande)}',
                           style: const TextStyle(fontSize: 14),
                         ),
                       ],

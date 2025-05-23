@@ -6,6 +6,14 @@ import 'package:testfront/core/models/VehiculeDTO.dart';
 import 'package:testfront/core/services/VehiculeProvider.dart';
 import 'package:testfront/features/vehicule/VignetteScreen.dart';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:testfront/core/models/VehiculeCreationDTO.dart';
+import 'package:testfront/core/models/StatutVehicule.dart';
+import 'package:testfront/core/models/VehiculeDTO.dart';
+import 'package:testfront/core/services/VehiculeProvider.dart';
+import 'package:testfront/features/vehicule/VignetteScreen.dart';
+
 class VehiculeScreen extends StatefulWidget {
   @override
   _VehiculeScreenState createState() => _VehiculeScreenState();
@@ -16,6 +24,13 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
   int _currentPage = 0;
   final int _itemsPerPage = 8;
   bool _ascending = true;
+
+  // Couleurs bleues pour le design
+  final Color _primaryBlue = Color(0xFF2196F3);
+  final Color _secondaryBlue = Color(0xFF64B5F6);
+  final Color _accentBlue = Color(0xFF1976D2);
+  final Color _backgroundBlue = Color(0xFFF8F9FA);
+  final Color _textBlue = Color(0xFF37474F);
 
   @override
   void initState() {
@@ -49,7 +64,7 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w500,
-              color: Colors.grey[700],
+              color: _textBlue,
             ),
           ),
         ),
@@ -57,9 +72,20 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
           controller: controller,
           decoration: InputDecoration(
             hintText: 'Entrez $label',
-            prefixIcon: Icon(icon, color: const Color(0xFF2A5298)),
+            prefixIcon: Icon(icon, color: _accentBlue),
             errorText: errorText,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _accentBlue.withOpacity(0.3)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _accentBlue.withOpacity(0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: _accentBlue),
+            ),
             filled: true,
             fillColor: Colors.white,
           ),
@@ -142,133 +168,259 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
               });
             }
 
-            return AlertDialog(
-              title: Text(isEdit ? 'Modifier véhicule' : 'Nouveau véhicule'),
-              content: SingleChildScrollView(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Champ Marque
-                      _buildFormField(
-                        controller: marqueController,
-                        label: 'Marque',
-                        icon: Icons.branding_watermark,
-                        errorText: fieldErrors['marque'],
-                        isRequired: true,
-                      ),
-                      const SizedBox(height: 16),
+            return Center(
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: 500, // Dialog plus petit
+                  maxHeight: MediaQuery.of(context).size.height * 0.8,
+                ),
+                child: Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  backgroundColor: _backgroundBlue,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // En-tête avec icône
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: _primaryBlue.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.directions_car, color: _accentBlue),
+                                SizedBox(width: 10),
+                                Text(
+                                  isEdit
+                                      ? 'Modifier véhicule'
+                                      : 'Nouveau véhicule',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: _textBlue,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
 
-                      // Champ Modèle
-                      _buildFormField(
-                        controller: modeleController,
-                        label: 'Modèle',
-                        icon: Icons.directions_car,
-                        errorText: fieldErrors['modele'],
-                        isRequired: true,
-                      ),
-                      const SizedBox(height: 16),
+                          SizedBox(height: 20),
 
-                      // Champ Immatriculation
-                      _buildFormField(
-                        controller: immatriculationController,
-                        label: 'Immatriculation',
-                        icon: Icons.confirmation_number,
-                        errorText: fieldErrors['immatriculation'],
-                        isRequired: true,
-                      ),
-                      const SizedBox(height: 16),
+                          // Formulaire
+                          Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildFormField(
+                                  controller: marqueController,
+                                  label: 'Marque',
+                                  icon: Icons.branding_watermark,
+                                  errorText: fieldErrors['marque'],
+                                  isRequired: true,
+                                ),
 
-                      // Champ Année
-                      _buildFormField(
-                        controller: anneeController,
-                        label: 'Année',
-                        icon: Icons.calendar_today,
-                        keyboardType: TextInputType.number,
-                        errorText: fieldErrors['annee'],
-                        isRequired: true,
-                      ),
-                      const SizedBox(height: 16),
+                                SizedBox(height: 16),
 
-                      // Champ Kilométrage
-                      _buildFormField(
-                        controller: kilometrageController,
-                        label: 'Kilométrage',
-                        icon: Icons.speed,
-                        keyboardType: TextInputType.number,
-                        errorText: fieldErrors['kilometrage'],
-                        isRequired: true,
-                      ),
-                      const SizedBox(height: 16),
+                                _buildFormField(
+                                  controller: modeleController,
+                                  label: 'Modèle',
+                                  icon: Icons.directions_car,
+                                  errorText: fieldErrors['modele'],
+                                  isRequired: true,
+                                ),
 
-                      // Champ Statut
-                      DropdownButtonFormField<StatutVehicule>(
-                        value: selectedStatut,
-                        decoration: InputDecoration(
-                          labelText: 'Statut',
-                          border: OutlineInputBorder(),
-                          errorText: fieldErrors['statut'],
-                        ),
-                        items:
-                            StatutVehicule.values.map((statut) {
-                              return DropdownMenuItem(
-                                value: statut,
-                                child: Text(_getStatutText(statut)),
-                              );
-                            }).toList(),
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => selectedStatut = value);
-                          }
-                        },
+                                SizedBox(height: 16),
+
+                                _buildFormField(
+                                  controller: immatriculationController,
+                                  label: 'Immatriculation',
+                                  icon: Icons.confirmation_number,
+                                  errorText: fieldErrors['immatriculation'],
+                                  isRequired: true,
+                                ),
+
+                                SizedBox(height: 16),
+
+                                _buildFormField(
+                                  controller: anneeController,
+                                  label: 'Année',
+                                  icon: Icons.calendar_today,
+                                  keyboardType: TextInputType.number,
+                                  errorText: fieldErrors['annee'],
+                                  isRequired: true,
+                                ),
+
+                                SizedBox(height: 16),
+
+                                _buildFormField(
+                                  controller: kilometrageController,
+                                  label: 'Kilométrage',
+                                  icon: Icons.speed,
+                                  keyboardType: TextInputType.number,
+                                  errorText: fieldErrors['kilometrage'],
+                                  isRequired: true,
+                                ),
+
+                                SizedBox(height: 16),
+
+                                // Sélecteur de statut amélioré
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: _accentBlue.withOpacity(0.3),
+                                      width: 1.5,
+                                    ),
+                                    color: Colors.white,
+                                  ),
+                                  child:
+                                      DropdownButtonFormField<StatutVehicule>(
+                                        value: selectedStatut,
+                                        decoration: InputDecoration(
+                                          labelText: 'Statut',
+                                          border: InputBorder.none,
+                                          errorText: fieldErrors['statut'],
+                                          labelStyle: TextStyle(
+                                            color: _textBlue.withOpacity(0.8),
+                                          ),
+                                        ),
+                                        dropdownColor: Colors.white,
+                                        icon: Icon(
+                                          Icons.arrow_drop_down,
+                                          color: _accentBlue,
+                                        ),
+                                        style: TextStyle(color: _textBlue),
+                                        items:
+                                            StatutVehicule.values.map((statut) {
+                                              return DropdownMenuItem(
+                                                value: statut,
+                                                child: Row(
+                                                  children: [
+                                                    _buildStatutBadge(statut),
+                                                    SizedBox(width: 8),
+                                                    Text(
+                                                      _getStatutText(statut),
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }).toList(),
+                                        onChanged: (value) {
+                                          if (value != null) {
+                                            setState(
+                                              () => selectedStatut = value,
+                                            );
+                                          }
+                                        },
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(height: 20),
+
+                          // Boutons d'action
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              // Bouton Annuler
+                              TextButton(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: _textBlue,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    side: BorderSide(color: _accentBlue),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                                child: Text('Annuler'),
+                              ),
+
+                              SizedBox(width: 10),
+
+                              // Bouton Valider
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _accentBlue,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 12,
+                                  ),
+                                  elevation: 2,
+                                ),
+                                onPressed: () async {
+                                  if (_formKey.currentState!.validate()) {
+                                    final dto = VehiculeCreationDTO(
+                                      marque: marqueController.text.trim(),
+                                      modele: modeleController.text.trim(),
+                                      immatriculation:
+                                          immatriculationController.text.trim(),
+                                      anneeMiseEnCirculation:
+                                          int.tryParse(
+                                            anneeController.text.trim(),
+                                          ) ??
+                                          0,
+                                      kilometrage:
+                                          int.tryParse(
+                                            kilometrageController.text.trim(),
+                                          ) ??
+                                          0,
+                                      statut: selectedStatut.index,
+                                    );
+
+                                    final provider =
+                                        Provider.of<VehiculeProvider>(
+                                          context,
+                                          listen: false,
+                                        );
+                                    final response =
+                                        isEdit
+                                            ? await provider.updateVehicule(
+                                              vehicule!.vehiculeId,
+                                              dto,
+                                            )
+                                            : await provider.createVehicule(
+                                              dto,
+                                            );
+
+                                    if (response.success) {
+                                      if (context.mounted)
+                                        Navigator.pop(context);
+                                    } else {
+                                      handleApiErrors(response.errors);
+                                    }
+                                  }
+                                },
+                                child: Text(isEdit ? 'Modifier' : 'Ajouter'),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Annuler'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      final dto = VehiculeCreationDTO(
-                        marque: marqueController.text.trim(),
-                        modele: modeleController.text.trim(),
-                        immatriculation: immatriculationController.text.trim(),
-                        anneeMiseEnCirculation:
-                            int.tryParse(anneeController.text.trim()) ?? 0,
-                        kilometrage:
-                            int.tryParse(kilometrageController.text.trim()) ??
-                            0,
-                        statut: selectedStatut.index,
-                      );
-
-                      final provider = Provider.of<VehiculeProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final response =
-                          isEdit
-                              ? await provider.updateVehicule(
-                                vehicule!.vehiculeId,
-                                dto,
-                              )
-                              : await provider.createVehicule(dto);
-
-                      if (response.success) {
-                        if (context.mounted) Navigator.pop(context);
-                      } else {
-                        handleApiErrors(response.errors);
-                      }
-                    }
-                  },
-                  child: Text(isEdit ? 'Modifier' : 'Ajouter'),
-                ),
-              ],
             );
           },
         );
@@ -276,27 +428,87 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
     );
   }
 
+  Widget _buildStatutBadge(StatutVehicule statut) {
+    Color badgeColor;
+    IconData badgeIcon;
+
+    switch (statut) {
+      case StatutVehicule.Disponible:
+        badgeColor = Color(0xFF4CAF50);
+        badgeIcon = Icons.check_circle;
+        break;
+      case StatutVehicule.EnMaintenance:
+        badgeColor = Color(0xFFFF9800);
+        badgeIcon = Icons.build;
+        break;
+      case StatutVehicule.HorsService:
+        badgeColor = Color(0xFFF44336);
+        badgeIcon = Icons.warning;
+        break;
+      case StatutVehicule.EnMission:
+        badgeColor = Color(0xFF2196F3);
+        badgeIcon = Icons.directions_car;
+        break;
+      default:
+        badgeColor = Colors.grey;
+        badgeIcon = Icons.help;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: badgeColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(badgeIcon, size: 16, color: Colors.white),
+          SizedBox(width: 4),
+          Text(
+            _getStatutText(statut),
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _backgroundBlue,
       appBar: AppBar(
-        title: const Text('Gestion des Véhicules'),
+        title: Text(
+          'Gestion des Véhicules',
+          style: TextStyle(color: _textBlue),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: IconThemeData(color: _accentBlue),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed:
-                () =>
-                    Provider.of<VehiculeProvider>(
-                      context,
-                      listen: false,
-                    ).loadVehicules(),
+          Tooltip(
+            message: 'Actualiser la liste',
+            child: IconButton(
+              icon: Icon(Icons.refresh, color: _accentBlue),
+              onPressed:
+                  () =>
+                      Provider.of<VehiculeProvider>(
+                        context,
+                        listen: false,
+                      ).loadVehicules(),
+            ),
           ),
         ],
       ),
       body: Consumer<VehiculeProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading)
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator(color: _accentBlue));
           if (provider.error != null)
             return Center(child: Text(provider.error!));
 
@@ -323,31 +535,117 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
 
           return Column(
             children: [
+              // Barre avec recherche, bouton ajout et tri séparés
               Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
+                    // Bouton d'ajout à gauche
+
+                    // Champ de recherche au centre (plus petit)
                     Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          labelText: 'Rechercher',
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(),
+                      flex: 2,
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        onChanged: (_) => setState(() {}),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            labelText: 'Rechercher',
+                            hintText: 'Marque, modèle...',
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: _accentBlue,
+                              size: 20,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              vertical: 12.0,
+                            ),
+                            labelStyle: TextStyle(fontSize: 14),
+                            hintStyle: TextStyle(fontSize: 14),
+                          ),
+                          style: TextStyle(fontSize: 14),
+                          onChanged: (_) => setState(() {}),
+                        ),
                       ),
                     ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.sort_by_alpha,
-                        color: _ascending ? Colors.blue : Colors.grey,
+                    SizedBox(width: 12),
+
+                    Tooltip(
+                      message: 'Ajouter un véhicule',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: _accentBlue,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.add, color: Colors.white, size: 24),
+                          onPressed:
+                              () => _showAddOrEditVehiculeDialog(context),
+                          constraints: BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                        ),
                       ),
-                      onPressed: () => setState(() => _ascending = !_ascending),
                     ),
-                    ElevatedButton(
-                      onPressed: () => _showAddOrEditVehiculeDialog(context),
-                      child: const Text('Ajouter'),
+
+                    SizedBox(width: 12),
+
+                    // Bouton de tri à droite
+                    Tooltip(
+                      message:
+                          _ascending
+                              ? 'Tri croissant (A-Z)'
+                              : 'Tri décroissant (Z-A)',
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color:
+                              _ascending ? _primaryBlue : Colors.grey.shade400,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.sort_by_alpha,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          onPressed:
+                              () => setState(() => _ascending = !_ascending),
+                          constraints: BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -355,7 +653,25 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
               Expanded(
                 child:
                     currentPageItems.isEmpty
-                        ? Center(child: Text('Aucun véhicule trouvé'))
+                        ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.directions_car,
+                                size: 50,
+                                color: _accentBlue.withOpacity(0.5),
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Aucun véhicule trouvé',
+                                style: TextStyle(
+                                  color: _textBlue.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
                         : ListView.builder(
                           itemCount: currentPageItems.length,
                           itemBuilder:
@@ -366,25 +682,72 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
                         ),
               ),
               if (totalPages > 1)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      onPressed:
-                          _currentPage > 0
-                              ? () => setState(() => _currentPage--)
-                              : null,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black12,
+                          blurRadius: 4,
+                          offset: Offset(0, -2),
+                        ),
+                      ],
                     ),
-                    Text('Page ${_currentPage + 1}/$totalPages'),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right),
-                      onPressed:
-                          _currentPage < totalPages - 1
-                              ? () => setState(() => _currentPage++)
-                              : null,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Tooltip(
+                            message: 'Page précédente',
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.chevron_left,
+                                color: _accentBlue,
+                              ),
+                              onPressed:
+                                  _currentPage > 0
+                                      ? () => setState(() => _currentPage--)
+                                      : null,
+                            ),
+                          ),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _primaryBlue.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              'Page ${_currentPage + 1}/$totalPages',
+                              style: TextStyle(color: _textBlue),
+                            ),
+                          ),
+                          Tooltip(
+                            message: 'Page suivante',
+                            child: IconButton(
+                              icon: Icon(
+                                Icons.chevron_right,
+                                color: _accentBlue,
+                              ),
+                              onPressed:
+                                  _currentPage < totalPages - 1
+                                      ? () => setState(() => _currentPage++)
+                                      : null,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
             ],
           );
@@ -394,43 +757,144 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
   }
 
   Widget _buildVehiculeCard(BuildContext context, VehiculeDTO v) {
-    return Card(
-      child: ListTile(
-        title: Text('${v.marque} ${v.modele}'),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Immatriculation: ${v.immatriculation}'),
-            Text('Année: ${v.anneeMiseEnCirculation}'),
-            Text('Kilométrage: ${v.kilometrage} km'),
-          ],
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed:
-                  () => _showAddOrEditVehiculeDialog(context, vehicule: v),
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _confirmDelete(context, v),
-            ),
-            IconButton(
-              icon: const Icon(Icons.receipt),
-              onPressed:
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => VignetteScreen(vehiculeId: v.vehiculeId),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showAddOrEditVehiculeDialog(context, vehicule: v),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Ligne principale : icône + infos + statut
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.spaceBetween,
+                  children: [
+                    Wrap(
+                      spacing: 12,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _primaryBlue.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.directions_car,
+                            color: _accentBlue,
+                            size: 28,
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${v.marque} ${v.modele}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: _textBlue,
+                              ),
+                            ),
+                            Text(
+                              v.immatriculation,
+                              style: TextStyle(
+                                color: _textBlue.withOpacity(0.7),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                  ),
+                    _buildStatutBadge(v.statut),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Informations techniques
+                Wrap(
+                  spacing: 20,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.start,
+                  children: [
+                    _buildInfoItem(
+                      Icons.calendar_today,
+                      '${v.anneeMiseEnCirculation}',
+                    ),
+                    _buildInfoItem(Icons.speed, '${v.kilometrage} km'),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                // Actions
+                Wrap(
+                  spacing: 8,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    Tooltip(
+                      message: 'Modifier le véhicule',
+                      child: IconButton(
+                        icon: Icon(Icons.edit, color: _accentBlue),
+                        onPressed:
+                            () => _showAddOrEditVehiculeDialog(
+                              context,
+                              vehicule: v,
+                            ),
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Supprimer le véhicule',
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Color(0xFFF44336),
+                        ),
+                        onPressed: () => _confirmDelete(context, v),
+                      ),
+                    ),
+                    Tooltip(
+                      message: 'Voir les vignettes',
+                      child: IconButton(
+                        icon: Icon(Icons.receipt, color: _primaryBlue),
+                        onPressed:
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => VignetteScreen(
+                                      vehiculeId: v.vehiculeId,
+                                    ),
+                              ),
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildInfoItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: _accentBlue),
+        SizedBox(width: 4),
+        Text(text, style: TextStyle(color: _textBlue.withOpacity(0.8))),
+      ],
     );
   }
 
@@ -438,32 +902,103 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
     showDialog(
       context: context,
       builder:
-          (context) => AlertDialog(
-            title: const Text('Confirmer la suppression'),
-            content: Text('Supprimer le véhicule ${v.marque} ${v.modele} ?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Annuler'),
+          (context) => Center(
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: 400, // Dialog de suppression plus petit
+                maxHeight: 300,
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () async {
-                  Navigator.pop(context);
-                  try {
-                    await Provider.of<VehiculeProvider>(
-                      context,
-                      listen: false,
-                    ).deleteVehicule(v.vehiculeId);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Erreur: ${e.toString()}')),
-                    );
-                  }
-                },
-                child: const Text('Supprimer'),
+              child: Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                backgroundColor: _backgroundBlue,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFF44336).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning, color: Color(0xFFF44336)),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Confirmer la suppression',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: _textBlue,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        'Supprimer le véhicule ${v.marque} ${v.modele} ?',
+                        style: TextStyle(color: _textBlue),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: _textBlue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('Annuler'),
+                          ),
+                          SizedBox(width: 10),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFFF44336),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(context);
+                              try {
+                                await Provider.of<VehiculeProvider>(
+                                  context,
+                                  listen: false,
+                                ).deleteVehicule(v.vehiculeId);
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Erreur: ${e.toString()}'),
+                                    backgroundColor: Color(0xFFF44336),
+                                  ),
+                                );
+                              }
+                            },
+                            child: Text('Supprimer'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ],
+            ),
           ),
     );
   }

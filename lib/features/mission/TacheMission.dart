@@ -4142,6 +4142,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:testfront/core/models/MissionDTO.dart';
 import 'package:testfront/core/models/NotificationCreateDTO.dart';
 import 'package:testfront/core/models/PrioriteTache.dart';
 import 'package:testfront/core/models/StatusTache.dart';
@@ -4153,6 +4154,8 @@ import 'package:testfront/core/providers/mission_provider.dart';
 import 'package:testfront/core/providers/tache_provider.dart';
 import 'package:testfront/core/services/NotificationService.dart';
 import 'package:testfront/core/services/signalr_client.dart';
+import 'package:testfront/features/mission/DepensesParTacheScreen.dart';
+import 'package:testfront/features/mission/web/DepensePartacheEmployeWeb.dart';
 
 class TachesParMissionScreen extends StatefulWidget {
   final int missionId;
@@ -4220,12 +4223,11 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
     );
 
     //final missionId = tacheProvider.selectedTache?.missionId;
-      await tacheProvider.fetchTotalDepensesMission(widget.missionId);
-      await tacheProvider.chargerTotalBudget(widget.missionId);
-      await tacheProvider.fetchTotalDepensesTache(
-        tacheProvider.selectedTache!.tacheId,
-      );
-    
+    await tacheProvider.fetchTotalDepensesMission(widget.missionId);
+    await tacheProvider.chargerTotalBudget(widget.missionId);
+    await tacheProvider.fetchTotalDepensesTache(
+      tacheProvider.selectedTache!.tacheId,
+    );
   }
 
   Future<void> _loadEmployesDisponibles() async {
@@ -4556,6 +4558,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // En-tête
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -4577,102 +4580,39 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Section Principale
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Colonne de gauche (Informations principales)
-                        Expanded(
-                          flex: 2,
-                          child: Column(
+                    // Contenu responsive
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isSmallScreen = constraints.maxWidth < 600;
+
+                        if (isSmallScreen) {
+                          return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildDetailCard(
-                                icon: Icons.description,
-                                title: 'Description',
-                                content:
-                                    tache.description ?? 'Aucune description',
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              _buildDetailCard(
-                                icon: Icons.calendar_today,
-                                title: 'Date de création',
-                                content: _formatDate(tache.dateCreation),
-                              ),
-
-                              if (tache.dateRealisation != null) ...[
-                                const SizedBox(height: 12),
-                                _buildDetailCard(
-                                  icon: Icons.event_available,
-                                  title: 'Date de réalisation',
-                                  content: _formatDate(tache.dateRealisation!),
-                                ),
-                              ],
-
-                              const SizedBox(height: 12),
-
-                              _buildDetailCard(
-                                icon: Icons.attach_money,
-                                title: 'Budget',
-                                content:
-                                    '${tache.budget.toStringAsFixed(2)} Dt',
-                              ),
-                              if (tache.depenses != null) ...[
-                                const SizedBox(height: 12),
-                                _buildDetailCard(
-                                  icon: Icons.mobile_friendly_rounded,
-                                  title: 'Dépenses',
-                                  content:
-                                      '${tache.depenses?.toStringAsFixed(2)} Dt',
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-
-                        // Colonne de droite (Métadonnées)
-                        const SizedBox(width: 16),
-
-                        Expanded(
-                          flex: 1,
-                          child: Column(
-                            children: [
-                              _buildStatusBadge(tache.statutTache),
+                              _buildLeftColumn(tache),
                               const SizedBox(height: 16),
-
-                              _buildMetaDataCard(
-                                icon: Icons.priority_high,
-                                title: 'Priorité',
-                                value: _getPrioriteTacheText(tache.priorite),
-                                color: _getPrioriteColor(tache.priorite),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              _buildMetaDataCard(
-                                icon: Icons.person,
-                                title: 'Assignée à',
-                                value: _getNomEmploye(tache.userId),
-                              ),
-
-                              const SizedBox(height: 8),
-
-                              _buildMetaDataCard(
-                                icon: Icons.date_range,
-                                title: 'Date création',
-                                value: DateFormat(
-                                  'dd/MM/yyyy – HH:mm',
-                                ).format(tache.dateCreation),
+                              _buildRightColumn(tache),
+                            ],
+                          );
+                        } else {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 2, child: _buildLeftColumn(tache)),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                flex: 1,
+                                child: _buildRightColumn(tache),
                               ),
                             ],
-                          ),
-                        ),
-                      ],
+                          );
+                        }
+                      },
                     ),
 
                     const SizedBox(height: 24),
+
+                    // Bouton Fermer
                     Center(
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(context),
@@ -4692,6 +4632,90 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
               ),
             ),
           ),
+    );
+  }
+
+  Widget _buildLeftColumn(TacheDTO tache) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildStatusBadge(tache.statutTache),
+        const SizedBox(height: 20, width: 10),
+        _buildMetaDataCard(
+          icon: Icons.priority_high,
+          title: 'Priorité',
+          value: _getPrioriteTacheText(tache.priorite),
+          color: _getPrioriteColor(tache.priorite),
+        ),
+        _buildDetailCard(
+          icon: Icons.description,
+          title: 'Description',
+          content: tache.description ?? 'Aucune description',
+        ),
+        const SizedBox(height: 12),
+        _buildDetailCard(
+          icon: Icons.calendar_today,
+          title: 'Date de création',
+          content: _formatDate(tache.dateCreation),
+        ),
+        if (tache.dateRealisation != null) ...[
+          const SizedBox(height: 12),
+          _buildDetailCard(
+            icon: Icons.event_available,
+            title: 'Date de réalisation',
+            content: _formatDate(tache.dateRealisation!),
+          ),
+        ],
+        const SizedBox(height: 12),
+        _buildDetailCard(
+          icon: Icons.attach_money,
+          title: 'Budget',
+          content: '${tache.budget.toStringAsFixed(2)} Dt',
+        ),
+        if (tache.depenses != null) ...[
+  const SizedBox(height: 12),
+  Row(
+    children: [
+      // Carte des dépenses
+      Expanded(
+        child: _buildDetailCard(
+          icon: Icons.mobile_friendly_rounded,
+          title: 'Dépenses',
+          content: '${tache.depenses?.toStringAsFixed(2)} Dt',
+        ),
+      ),
+      const SizedBox(width: 8),
+      // Icône vers DepensesParTacheScreen
+      IconButton(
+        icon: const Icon(Icons.open_in_new),
+        tooltip: 'Voir les détails des dépenses',
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DepensesParTacheScreenAdmin(tacheId: tache.tacheId),
+            ),
+          );
+        },
+      ),
+    ],
+  ),
+],
+
+      ],
+    );
+  }
+
+  Widget _buildRightColumn(TacheDTO tache) {
+    return Column(
+      children: [
+        const SizedBox(height: 8),
+        _buildMetaDataCard(
+          icon: Icons.person,
+          title: 'Assignée à',
+          value: _getNomEmploye(tache.userId),
+        ),
+      ],
     );
   }
 
@@ -5042,224 +5066,268 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
     final missionProvider = context.read<MissionProvider>();
     final mission = await missionProvider.getMissionById(widget.missionId);
 
-   await showDialog(
-  context: context,
-  builder: (context) => StatefulBuilder(
-    builder: (context, setState) {
-      final isMobile = MediaQuery.of(context).size.width < 600;
+    await showDialog(
+      context: context,
+      builder:
+          (context) => StatefulBuilder(
+            builder: (context, setState) {
+              final isMobile = MediaQuery.of(context).size.width < 600;
 
-      return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        backgroundColor: Colors.transparent,
-        child: Container(
-          width: isMobile ? double.infinity : 400,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 12,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
-          child: SingleChildScrollView(
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Modifier Tâche',
-                    style: GoogleFonts.poppins(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF2A5298),
-                    ),
+              return Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                backgroundColor: Colors.transparent,
+                child: Container(
+                  width: isMobile ? double.infinity : 400,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 20,
                   ),
-                  const SizedBox(height: 18),
-
-                  // CHAMPS FORMULAIRES
-                  TextFormField(
-                    controller: _titreController,
-                    decoration: InputDecoration(
-                      labelText: 'Titre *',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 12,
+                        offset: Offset(0, 6),
                       ),
-                      errorText: _fieldErrors['titre'],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextFormField(
-                    controller: _descriptionController,
-                    decoration: InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      errorText: _fieldErrors['description'],
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 16),
-
-                  TextFormField(
-                    controller: _budgetController,
-                    decoration: InputDecoration(
-                      labelText: 'Budget *',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      errorText: _fieldErrors['budget'],
-                      prefixIcon: const Icon(Icons.attach_money),
-                      suffixText: 'DT',
-                    ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
                     ],
                   ),
-                  const SizedBox(height: 16),
-
-                  DropdownButtonFormField<PrioriteTache>(
-                    value: selectedPriorite,
-                    decoration: InputDecoration(
-                      labelText: 'Priorité',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    items: PrioriteTache.values.map((p) {
-                      return DropdownMenuItem(
-                        value: p,
-                        child: Text(_getPrioriteTacheText(p)),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => selectedPriorite = val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Sélection employé
-                  if (isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else if (error != null)
-                    Text(error!, style: const TextStyle(color: Colors.red))
-                  else
-                    DropdownButtonFormField<String>(
-                      value: selectedUserId,
-                      decoration: InputDecoration(
-                        labelText: 'Employé assigné *',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        errorText: _fieldErrors['user'],
-                      ),
-                      items: employesDisponibles.map((e) {
-                        return DropdownMenuItem(
-                          value: e.id,
-                          child: Text('${e.prenom} ${e.nom}'),
-                        );
-                      }).toList(),
-                      onChanged: (val) => setState(() => selectedUserId = val),
-                    ),
-
-                  const SizedBox(height: 24),
-
-                  // BOUTONS ACTION
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2A5298),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            'Annuler',
+                  child: SingleChildScrollView(
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Modifier Tâche',
                             style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF2A5298),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF2A5298),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                          const SizedBox(height: 18),
+
+                          // CHAMPS FORMULAIRES
+                          TextFormField(
+                            controller: _titreController,
+                            decoration: InputDecoration(
+                              labelText: 'Titre *',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['titre'],
                             ),
-                            elevation: 4,
-                            shadowColor: Colors.blue.withOpacity(0.3),
                           ),
-                          onPressed: () async {
-                            final notificationService =
-                                Provider.of<NotificationService>(context, listen: false);
-                            final signalRService =
-                                Provider.of<SignalRService>(context, listen: false);
+                          const SizedBox(height: 16),
 
-                            setState(() {
-                              _fieldErrors = {};
-                              if (_titreController.text.trim().isEmpty) {
-                                _fieldErrors['titre'] = 'Champ obligatoire';
-                              }
-                              if (_descriptionController.text.trim().isEmpty) {
-                                _fieldErrors['description'] = 'Champ obligatoire';
-                              }
-                              if (_budgetController.text.trim().isEmpty) {
-                                _fieldErrors['budget'] = 'Champ obligatoire';
-                              } else if (double.tryParse(_budgetController.text) == null) {
-                                _fieldErrors['budget'] = 'Nombre invalide';
-                              } else if (double.parse(_budgetController.text) <= 0) {
-                                _fieldErrors['budget'] = 'Le budget doit être positif';
-                              }
-                              if (selectedUserId == null || selectedUserId!.isEmpty) {
-                                _fieldErrors['user'] = 'Veuillez choisir un employé';
-                              }
-                            });
+                          TextFormField(
+                            controller: _descriptionController,
+                            decoration: InputDecoration(
+                              labelText: 'Description',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['description'],
+                            ),
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 16),
 
-                            if (_fieldErrors.isEmpty) {
-                              final updatedTache = TacheUpdateDTO(
-                                titre: _titreController.text.trim(),
-                                description: _descriptionController.text.trim(),
-                                priorite: selectedPriorite,
-                                statut: selectedStatut,
-                                userId: selectedUserId!,
-                                budget: double.parse(_budgetController.text.trim()),
-                              );
+                          TextFormField(
+                            controller: _budgetController,
+                            decoration: InputDecoration(
+                              labelText: 'Budget *',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorText: _fieldErrors['budget'],
+                              prefixIcon: const Icon(Icons.attach_money),
+                              suffixText: 'DT',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^\d*\.?\d{0,2}'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
 
-                              _handleEditTache(tache, updatedTache);
-                              Navigator.pop(context);
+                          DropdownButtonFormField<PrioriteTache>(
+                            value: selectedPriorite,
+                            decoration: InputDecoration(
+                              labelText: 'Priorité',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            items:
+                                PrioriteTache.values.map((p) {
+                                  return DropdownMenuItem(
+                                    value: p,
+                                    child: Text(_getPrioriteTacheText(p)),
+                                  );
+                                }).toList(),
+                            onChanged: (val) {
+                              if (val != null)
+                                setState(() => selectedPriorite = val);
+                            },
+                          ),
+                          const SizedBox(height: 16),
 
-                              tacheProvider.loadDepensesMission(widget.missionId);
-                              tacheProvider.updateEmployes(widget.missionId);
-                              _updateDepenseEtTotal();
-                              tacheProvider.chargerTotalBudget(widget.missionId);
-                              missionProvider.loadMissions();
+                          // Sélection employé
+                          if (isLoading)
+                            const Center(child: CircularProgressIndicator())
+                          else if (error != null)
+                            Text(
+                              error!,
+                              style: const TextStyle(color: Colors.red),
+                            )
+                          else
+                            DropdownButtonFormField<String>(
+                              value: selectedUserId,
+                              decoration: InputDecoration(
+                                labelText: 'Employé assigné *',
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                errorText: _fieldErrors['user'],
+                              ),
+                              items:
+                                  employesDisponibles.map((e) {
+                                    return DropdownMenuItem(
+                                      value: e.id,
+                                      child: Text('${e.prenom} ${e.nom}'),
+                                    );
+                                  }).toList(),
+                              onChanged:
+                                  (val) => setState(() => selectedUserId = val),
+                            ),
 
-                              final notificationDTO = NotificationCreateDTO(
-                                title: 'Tâche mise à jour',
-                                message:
-                                    'Votre tâche "${updatedTache.titre}" a été modifiée.',
-                                userId: updatedTache.userId.toString(),
-                              );
+                          const SizedBox(height: 24),
 
-                             /* final createResponse =
+                          // BOUTONS ACTION
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2A5298),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
+                                  child: Text(
+                                    'Annuler',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2A5298),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor: Colors.blue.withOpacity(0.3),
+                                  ),
+                                  onPressed: () async {
+                                    setState(() {
+                                      _fieldErrors = {};
+                                      if (_titreController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['titre'] =
+                                            'Champ obligatoire';
+                                      }
+                                      if (_descriptionController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['description'] =
+                                            'Champ obligatoire';
+                                      }
+                                      if (_budgetController.text
+                                          .trim()
+                                          .isEmpty) {
+                                        _fieldErrors['budget'] =
+                                            'Champ obligatoire';
+                                      } else if (double.tryParse(
+                                            _budgetController.text,
+                                          ) ==
+                                          null) {
+                                        _fieldErrors['budget'] =
+                                            'Nombre invalide';
+                                      } else if (double.parse(
+                                            _budgetController.text,
+                                          ) <=
+                                          0) {
+                                        _fieldErrors['budget'] =
+                                            'Le budget doit être positif';
+                                      }
+                                      if (selectedUserId == null ||
+                                          selectedUserId!.isEmpty) {
+                                        _fieldErrors['user'] =
+                                            'Veuillez choisir un employé';
+                                      }
+                                    });
+
+                                    if (_fieldErrors.isEmpty) {
+                                      final updatedTache = TacheUpdateDTO(
+                                        titre: _titreController.text.trim(),
+                                        description:
+                                            _descriptionController.text.trim(),
+                                        priorite: selectedPriorite,
+                                        statut: selectedStatut,
+                                        userId: selectedUserId!,
+                                        budget: double.parse(
+                                          _budgetController.text.trim(),
+                                        ),
+                                      );
+
+                                      _handleEditTache(tache, updatedTache);
+                                      Navigator.pop(context);
+
+                                      tacheProvider.loadDepensesMission(
+                                        widget.missionId,
+                                      );
+                                      tacheProvider.updateEmployes(
+                                        widget.missionId,
+                                      );
+                                      _updateDepenseEtTotal();
+                                      tacheProvider.chargerTotalBudget(
+                                        widget.missionId,
+                                      );
+                                      missionProvider.loadMissions();
+
+                                      final notificationDTO = NotificationCreateDTO(
+                                        title: 'Tâche mise à jour',
+                                        message:
+                                            'Votre tâche "${updatedTache.titre}" a été modifiée.',
+                                        userId: updatedTache.userId.toString(),
+                                      );
+
+                                      /* final createResponse =
                                   await notificationService.createNotification(notificationDTO);
 
                               if (createResponse.success && createResponse.data != null) {
@@ -5268,30 +5336,29 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                                   createResponse.data!,
                                 );
                               }*/
-                            }
-                          },
-                          child: Text(
-                            'Mettre à jour',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
+                                    }
+                                  },
+                                  child: Text(
+                                    'Mettre à jour',
+                                    style: GoogleFonts.poppins(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
-        ),
-      );
-    },
-  ),
-);
-
+    );
   }
 
   @override
@@ -5343,18 +5410,27 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
         return _sortByDateAsc ? dateComparison : -dateComparison;
       });
     }
-
-    // Pagination
+  final missionProvider = Provider.of<MissionProvider>(context, listen: false);
+  final MissionDTO? m = missionProvider.getMissionById(widget.missionId);
+  
+  
+      // Pagination
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
     final paginatedTaches = filteredTaches.sublist(
       startIndex,
       endIndex < filteredTaches.length ? endIndex : filteredTaches.length,
     );
+      if (m == null) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Mission introuvable')),
+      body: const Center(child: Text('Aucune mission trouvée avec cet ID')),
+    );
+  }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tâches de la mission #${widget.missionId}'),
+        title: Text('Tâches de la mission ${m.titre}'),
         centerTitle: true,
         backgroundColor: const Color(0xFF2A5298),
         actions: [
@@ -5381,7 +5457,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                   children: [
                     // Champ de recherche avec largeur fixe
                     SizedBox(
-                      width: 300,
+                      width: 150,
                       child: TextField(
                         controller: _searchController,
                         style: const TextStyle(fontSize: 16),
@@ -5396,7 +5472,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                       ),
                     ),
 
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
 
                     // Bouton Ajouter avec icône et texte
                     ElevatedButton.icon(
@@ -5423,11 +5499,17 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 // Filtres et tris
-                Row(
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
                   children: [
-                    Expanded(
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 150,
+                        maxWidth: 400,
+                      ),
                       child: DropdownButtonFormField<StatutTache?>(
                         value: _selectedStatutFilter,
                         decoration: const InputDecoration(
@@ -5454,9 +5536,11 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                         },
                       ),
                     ),
-
-                    const SizedBox(width: 10),
-                    Expanded(
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 150,
+                        maxWidth: 400,
+                      ),
                       child: DropdownButtonFormField<PrioriteTache?>(
                         value: _selectedPrioriteFilter,
                         decoration: const InputDecoration(
@@ -5485,6 +5569,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -5705,7 +5790,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                             : null,
                   ),
                   Text(
-                    'Page $_currentPage sur ${(filteredTaches.length / _itemsPerPage).ceil()}',
+                    'Page $_currentPage',
                     style: const TextStyle(fontSize: 16),
                   ),
                   IconButton(

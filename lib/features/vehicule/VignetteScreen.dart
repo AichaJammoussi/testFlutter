@@ -99,7 +99,6 @@ class _VignetteScreenState extends State<VignetteScreen> {
     );
   }
 
-  // 4. Méthode existante modifiée pour inclure le montant final
   Widget _buildVignetteCard(VignetteDto vignette) {
     final status = _getPaiementStatus(vignette);
     final amount = _calculateFinalAmount(vignette);
@@ -278,11 +277,7 @@ class _VignetteScreenState extends State<VignetteScreen> {
                 );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFF2A5298),
-        child: const Icon(Icons.add),
-        onPressed: () => _showAddVignetteDialog(context),
-      ),
+     
     );
   }
 

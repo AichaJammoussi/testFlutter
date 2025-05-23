@@ -316,11 +316,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                     );
                                 if (success) {
                                   // Récupérer le provider de notifications
-                                  final notifProvider =
-                                      Provider.of<NotificationProvider>(
-                                        context,
-                                        listen: false,
-                                      );
+                                  
 
                                   /*// Envoyer une notification à chaque utilisateur assigné
                                   for (final userId in selected) {

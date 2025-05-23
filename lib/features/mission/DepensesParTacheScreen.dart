@@ -362,7 +362,7 @@ await remboursementProvider.creerOuMettreAJourDemande(missionId);
                             ),
                           ),
                           SizedBox(height: 4),
-                          Text("Montant: $montantFormatted €"),
+                          Text("Montant: $montantFormatted Dt"),
                           Text("Type: $typeLabel | Moyen: $moyenLabel"),
                         ],
                       ),
@@ -421,7 +421,7 @@ await remboursementProvider.creerOuMettreAJourDemande(missionId);
                     ),
                     SizedBox(height: 8),
                     Text(
-                      "Montant: $montantFormatted €",
+                      "Montant: $montantFormatted Dt",
                       style: TextStyle(fontSize: 16),
                     ),
                     SizedBox(height: 8),

@@ -1,7 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:testfront/core/providers/UserProvider.dart';
+import 'package:testfront/core/providers/notification_provider.dart';
+import 'package:testfront/core/services/auth_service.dart';
 
 import 'package:testfront/features/auth/login_screen.dart';
 import 'package:testfront/features/home/home_screen.dart';
+import 'package:testfront/features/home/notification.dart';
+import 'package:testfront/features/home/notificationBadge.dart';
+import 'package:testfront/features/mapPage.dart';
+import 'package:testfront/features/mission/Calendrier.dart';
+import 'package:testfront/features/mission/MissionPageEmploye.dart';
+import 'package:testfront/features/mission/remboursement/adminRemboursement.dart';
+import 'package:testfront/features/mission/remboursement/remboursementEmploye.dart';
 import 'package:testfront/features/profile/profile_screen.dart';
 import 'package:testfront/features/role/roleScreen.dart';
 import 'package:testfront/features/role/userScreenEmploye.dart';
@@ -22,34 +33,39 @@ class MainPageMobile extends StatefulWidget {
 class _MainPageMobileState extends State<MainPageMobile> {
   int selectedIndex = 0;
 
-  List<String> notifications = [
-    'Mission A assignée à Jean.',
-    'Nouvelle mise à jour disponible.',
-    'Véhicule X a besoin d\'entretien.',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    final notificationProvider = Provider.of<NotificationProvider>(
+      context,
+      listen: false,
+    );
+    notificationProvider.loadNotifications();
+  }
 
   List<Widget> getPages() {
     if (widget.userRole == 'admin') {
       return [
         HomeScreen(),
         const ProfileScreen(),
-        UserScreenEmploye(),
-        VehiculeScreenEmploye(),
+        EmployesPage(),
+        VehiculeScreen(),
         const MissionsScreen(),
-        const Placeholder(),
-        const Placeholder(),
-        const Placeholder(),
+        AdminRemboursementsScreen(),
       ];
-    } else {
+    } else if (widget.userRole != null && widget.userRole != 'admin') {
       return [
         HomeScreen(),
         const ProfileScreen(),
-        UserScreenEmploye(),
+        EmployesPage(),
         VehiculeScreenEmploye(),
-        const MissionsScreen(),
-        const Placeholder(),
-        const Placeholder(),
-        const Placeholder(),
+
+        const MissionsScreenEmploye(),
+        const MesRemboursementsScreen(),
+      ];
+    } else {
+      return[
+
       ];
     }
   }
@@ -57,31 +73,38 @@ class _MainPageMobileState extends State<MainPageMobile> {
   List<Widget> getMenuItems() {
     if (widget.userRole == 'admin') {
       return [
-       _buildDrawerItem(Icons.home, 'Accueil', 0),
+        _buildDrawerItem(Icons.home, 'Accueil', 0),
         _buildDrawerItem(Icons.account_circle, 'Profil', 1),
         _buildDrawerItem(Icons.person, 'Utilisateurs', 2),
-        _buildDrawerItem(Icons.directions_car, 'Véhicules', 3),
-        _buildDrawerItem(Icons.gps_fixed, 'Missions', 4),
-        _buildDrawerItem(Icons.check_circle, 'Tâches', 5),
+        _buildDrawerItem(Icons.directions_car, 'Véhicule', 3),
+
+        _buildDrawerItem(Icons.task_rounded, 'Mission', 4),
+        _buildDrawerItem(Icons.attach_money, 'Remboursements', 5),
+
         _buildDrawerItem(Icons.description, 'Rapports', 6),
-        _buildDrawerItem(Icons.attach_money, 'Remboursements', 7),
         _buildDrawerItem(Icons.exit_to_app, 'Déconnexion', -1),
       ];
-    } else {
+    } else if (widget.userRole != null && widget.userRole != 'admin') {
       return [
         _buildDrawerItem(Icons.home, 'Accueil', 0),
         _buildDrawerItem(Icons.account_circle, 'Profil', 1),
         _buildDrawerItem(Icons.person, 'Utilisateurs', 2),
-        _buildDrawerItem(Icons.directions_car, 'Véhicules', 3),
-        _buildDrawerItem(Icons.gps_fixed, 'Missions', 4),
-        _buildDrawerItem(Icons.check_circle, 'Tâches', 5),
+        _buildDrawerItem(Icons.directions_car, 'Véhicule', 3),
+
+        _buildDrawerItem(Icons.task_rounded, 'Mission', 4),
+        _buildDrawerItem(Icons.attach_money, 'Remboursements', 5),
+
         _buildDrawerItem(Icons.description, 'Rapports', 6),
-        _buildDrawerItem(Icons.attach_money, 'Remboursements', 7),
         _buildDrawerItem(Icons.exit_to_app, 'Déconnexion', -1),
+      ];
+    } else {
+      return[
+
       ];
     }
   }
 
+  final authService = AuthService();
   Widget _buildDrawerItem(IconData icon, String title, int index) {
     return ListTile(
       leading: Icon(icon, color: index == selectedIndex ? primaryColor : null),
@@ -89,11 +112,14 @@ class _MainPageMobileState extends State<MainPageMobile> {
         title,
         style: TextStyle(
           color: index == selectedIndex ? primaryColor : null,
-          fontWeight: index == selectedIndex ? FontWeight.bold : FontWeight.normal,
+          fontWeight:
+              index == selectedIndex ? FontWeight.bold : FontWeight.normal,
         ),
       ),
       onTap: () {
         Navigator.pop(context); // Fermer le drawer
+        authService.logout();
+
         if (index == -1) {
           // Déconnexion
           Navigator.pushReplacement(
@@ -110,30 +136,16 @@ class _MainPageMobileState extends State<MainPageMobile> {
   }
 
   List<Widget> getMenuIconsOnly() {
-    List<IconData> icons;
-    if (widget.userRole == 'admin') {
-      icons = [
-        Icons.home,
-        Icons.account_circle,
-        Icons.person,
-        Icons.directions_car,
-        Icons.gps_fixed,
-        Icons.check_circle,
-        Icons.description,
-        Icons.attach_money,
-      ];
-    } else {
-      icons = [
-        Icons.home,
-        Icons.account_circle,
-        Icons.person,
-        Icons.directions_car,
-        Icons.gps_fixed,
-        Icons.check_circle,
-        Icons.description,
-        Icons.attach_money,
-      ];
-    }
+    List<IconData> icons = [
+      Icons.home,
+      Icons.account_circle,
+      Icons.person,
+      Icons.directions_car,
+      Icons.task_rounded,
+      Icons.attach_money,
+      Icons.description,
+      Icons.attach_money,
+    ];
 
     return List.generate(icons.length, (index) {
       return IconButton(
@@ -152,97 +164,107 @@ class _MainPageMobileState extends State<MainPageMobile> {
   }
 
   @override
-  @override
-Widget build(BuildContext context) {
-  return Scaffold(
-    appBar: AppBar(
-      title: const Text('Steros-Missions', style: TextStyle(color: Colors.white)),
-      backgroundColor: primaryColor,
-      iconTheme: const IconThemeData(color: Colors.white), // sidebar button en blanc
-      actions: [
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.notifications, color: Colors.white),
-          tooltip: 'Notifications',
-          onSelected: (value) {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text('Notification: $value')));
-          },
-          itemBuilder: (context) {
-            if (notifications.isEmpty) {
-              return [
-                const PopupMenuItem<String>(
-                  value: 'Aucune notification',
-                  child: Text('Aucune notification'),
-                ),
-              ];
-            }
-            return notifications.map((notif) {
-              return PopupMenuItem<String>(
-                value: notif,
-                child: Text(notif),
-              );
-            }).toList();
-          },
+  Widget build(BuildContext context) {
+    final notificationProvider = Provider.of<NotificationProvider>(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Steros-Missions',
+          style: TextStyle(color: Colors.white),
         ),
-      ],
-    ),
-    drawer: Drawer(
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: <Widget>[
-          Container(
-            height: 120,
-            decoration: BoxDecoration(color: primaryColor),
-            child: Stack(
-              children: [
-                const Positioned(
-                  left: 16,
-                  bottom: 16,
-                  child: Text(
-                    'Menu',
-                    style: TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                  ),
-                ),
-              ],
-            ),
+        backgroundColor: primaryColor,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ), // sidebar button en blanc
+        actions: [
+          NotificationBadge(
+            unreadCount: notificationProvider.unreadCount,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => NotificationScreen()),
+              );
+            },
           ),
-          ...getMenuItems(),
+          IconButton(
+            icon: const Icon(Icons.calendar_today, color: Colors.white),
+            tooltip: 'Calendrier',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => MissionCalendarScreen()),
+              );
+              // Fournit une liste vide si roles est null
+            },
+          ),
+                              
+IconButton(
+                                      icon: const Icon(
+                                        Icons.map,
+                                        color: Colors.white,
+                                      ),
+                                      tooltip: 'map',
+                                      onPressed: () {
+                                       Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => MapPage()),
+    );})
         ],
       ),
-    ),
-    body: Row(
-      children: [
-        Container(
-          width: 60,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
-            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
-            borderRadius: const BorderRadius.only(
-              topRight: Radius.circular(10),
-              bottomRight: Radius.circular(10),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            Container(
+              height: 120,
+              decoration: BoxDecoration(color: primaryColor),
+              child: Stack(
+                children: [
+                  const Positioned(
+                    left: 16,
+                    bottom: 16,
+                    child: Text(
+                      'Menu',
+                      style: TextStyle(color: Colors.white, fontSize: 20),
+                    ),
+                  ),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ...getMenuItems(),
+          ],
+        ),
+      ),
+      body: Row(
+        children: [
+          Container(
+            width: 60,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.9),
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(10),
+                bottomRight: Radius.circular(10),
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: getMenuIconsOnly(),
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: getMenuIconsOnly(),
-          ),
-        ),
-        Expanded(
-          child: getPages()[selectedIndex],
-        ),
-      ],
-    ),
-  );
-}
-
+          Expanded(child: getPages()[selectedIndex]),
+        ],
+      ),
+    );
+  }
 }

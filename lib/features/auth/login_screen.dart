@@ -7,6 +7,9 @@ import 'package:testfront/core/models/auth_response.dart';
 import 'package:testfront/core/models/user.dart';
 import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/services/auth_service.dart';
+import 'package:testfront/main.dart';
+import 'package:testfront/main_page_mobile.dart';
+import 'package:testfront/main_page_web.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -160,6 +163,47 @@ class _LoginScreenState extends State<LoginScreen>
       await prefs.remove('remembered_email');
     }
   }
+void _redirectBasedOnRole(List<String> roles) {
+
+  if (roles.contains('admin')) {
+    // Cas admin
+    if (isWeb()) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WebMainPage(userRole: 'admin'),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainPageMobile(userRole: 'admin'),
+        ),
+      );
+    }
+  } else if (!roles.contains('admin')) { 
+    // Cas autre que admin => Employe
+    if (isWeb()) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WebMainPage(userRole: 'Employe'),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainPageMobile(userRole: 'Employe'),
+        ),
+      );
+    }
+  } else {
+    // Aucun rôle connu
+    Navigator.pushReplacementNamed(context, '/profile');
+}
+}
 
   /*
   void _redirectBasedOnRole(List<String> roles) {
@@ -207,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
     }
   }*/
-  void _redirectBasedOnRole(List<String> roles) {
+/*  void _redirectBasedOnRole(List<String> roles) {
     if (roles.contains('admin')) {
       Navigator.pushReplacementNamed(context, '/noti');
     } else if (roles.contains('Employe')) {
@@ -303,7 +347,7 @@ if (kIsWeb) {
     Navigator.pushReplacementNamed(context, '/no-role'); // page vide ou erreur
   }
 }
-
+*/
   
   */
 

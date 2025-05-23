@@ -122,18 +122,16 @@ import 'package:testfront/core/providers/depenseProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart'
     show MissionProvider;
 import 'package:testfront/core/providers/notification_provider.dart';
+import 'package:testfront/core/providers/rapportProvider.dart';
 import 'package:testfront/core/providers/remboursement_provider.dart';
 import 'package:testfront/core/providers/tache_provider.dart';
-import 'package:testfront/core/services/NotificationService.dart';
 import 'package:testfront/core/services/VehiculeProvider.dart';
 import 'package:testfront/core/services/VehiculeService.dart';
 import 'package:testfront/core/services/auth_service.dart';
-import 'package:testfront/core/services/signalr_client.dart';
 import 'package:testfront/features/auth/login_screen.dart';
 import 'package:testfront/features/auth/register_screen.dart';
 import 'package:testfront/features/auth/conditions_screen.dart';
 import 'package:testfront/features/home/home_screen.dart';
-import 'package:testfront/features/home/noti.dart';
 import 'package:testfront/features/mission/MissionPage.dart';
 import 'package:testfront/features/mission/MissionPageEmploye.dart';
 import 'package:testfront/features/mission/remboursement/adminRemboursement.dart';
@@ -165,24 +163,16 @@ void main() {
         ChangeNotifierProvider(create: (_) => VignetteProvider()),
         ChangeNotifierProvider(create: (_) => MissionProvider()),
  Provider<AuthService>(create: (_) => authService),
-       ChangeNotifierProxyProvider<AuthService, NotificationService>(
-          create: (context) => NotificationService(
-            baseUrl: ApiConfig.baseUrl,
-            getToken: () async => AuthService.getToken(),
-          ),
-          update: (context, authService, previousNotificationService) {
-            // Si le service existe déjà, on le retourne
-            // Sinon on en crée un nouveau
-            return previousNotificationService ?? NotificationService(
-              baseUrl: ApiConfig.baseUrl,
-              getToken: () async => AuthService.getToken(),
-            );
-          },
-        ),
+       ChangeNotifierProvider(
+  create: (_) => NotificationProvider(),
+),
+
                ChangeNotifierProvider(create: (_) => TacheProvider()),
         ChangeNotifierProvider(create: (_) => UserProvider()),
         ChangeNotifierProvider(create: (_) => DepenseProvider()),
         ChangeNotifierProvider(create: (_) => RemboursementProvider()),
+                ChangeNotifierProvider(create: (_) => RapportProvider()),
+
       ],
       child: const MyApp(),
     ),
@@ -221,7 +211,7 @@ class MyApp extends StatelessWidget {
         '/missionEmploye': (_) => MissionsScreenEmploye(),
         '/mesRemboursements': (_) => MesRemboursementsScreen(),
                 '/remboursementAdmin': (_) => AdminRemboursementsScreen(),
-                '/noti': (_) => noti(),
+               // '/noti': (_) => noti(),
 
 
         //'/dashbord': (_) => PizzaMailApp(),

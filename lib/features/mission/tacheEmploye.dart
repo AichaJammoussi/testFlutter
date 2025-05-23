@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:testfront/core/models/MissionDTO.dart';
 import 'package:testfront/core/models/PrioriteTache.dart';
 import 'package:testfront/core/models/StatusTache.dart';
 import 'package:testfront/core/models/TacheUpdateDTO.dart';
@@ -317,159 +318,233 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
     );
   }
 
+  /// Crée une icône tapable avec fond pastel foncé et tooltip
+  Widget _buildActionIcon({
+    required IconData icon,
+    required String tooltip,
+    required Color backgroundColor,
+    required Color iconColor,
+    required VoidCallback onTap,
+    double size = 48,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(size / 2),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: iconColor, size: size * 0.5),
+        ),
+      ),
+    );
+  }
+
+  /// Affiche un dialog de confirmation puis exécute [onConfirm]
+  void _confirmAndExecute(
+    BuildContext context,
+    String title,
+    String content,
+    VoidCallback onConfirm,
+  ) {
+    _showConfirmationDialog(
+      context: context,
+      title: title,
+      content: content,
+      onConfirm: onConfirm,
+    );
+  }
+
   void _showTacheDetails(BuildContext context, TacheDTO tache) {
-    final userProvider = context.read<UserProvider>();
-    final userId = userProvider.user!.id;
+    final userId = context.read<UserProvider>().user!.id;
     final isCurrentUserTask = tache.userId == userId;
 
     showDialog(
       context: context,
-      builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          backgroundColor: Colors.transparent,
-          child: SingleChildScrollView(
-            child: Container(
-              decoration: _dialogDecoration.copyWith(
-                color: isCurrentUserTask ? Colors.white : Colors.grey.shade100,
-              ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          tache.titre,
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF2A5298),
+      builder:
+          (_) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            backgroundColor:
+                isCurrentUserTask ? Colors.white : Colors.grey.shade100,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Entête ───────────────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tache.titre,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2A5298),
+                            ),
                           ),
                         ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
-                  // Section principale réorganisée pour mobile
-                  Column(
-                    children: [
-                      _buildDetailCard(
-                        icon: Icons.description,
-                        title: 'Description',
-                        content: tache.description ?? 'Aucune description',
-                        isReadOnly: !isCurrentUserTask,
-                      ),
-                      const SizedBox(height: 12),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDetailCard(
-                              icon: Icons.calendar_today,
-                              title: 'Date de création',
-                              content: _formatDate(tache.dateCreation),
+                    // ── Contenu principal responsive ──────────
+                    LayoutBuilder(
+                      builder: (ctx, constraints) {
+                        final small = constraints.maxWidth < 400;
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // Description
+                            _buildDetailCard(
+                              icon: Icons.description,
+                              title: 'Description',
+                              content:
+                                  tache.description ?? 'Aucune description',
                               isReadOnly: !isCurrentUserTask,
                             ),
-                          ),
-                          if (tache.dateRealisation != null) ...[
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _buildDetailCard(
-                                icon: Icons.event_available,
-                                title: 'Date de réalisation',
-                                content: _formatDate(tache.dateRealisation!),
+                            const SizedBox(height: 12),
+
+                            // Dates creation / realisation
+                            if (small) ...[
+                              _buildDetailCard(
+                                icon: Icons.calendar_today,
+                                title: 'Date création',
+                                content: _formatDate(tache.dateCreation),
                                 isReadOnly: !isCurrentUserTask,
                               ),
+                              if (tache.dateRealisation != null) ...[
+                                const SizedBox(height: 8),
+                                _buildDetailCard(
+                                  icon: Icons.event_available,
+                                  title: 'Date réalisation',
+                                  content: _formatDate(tache.dateRealisation!),
+                                  isReadOnly: !isCurrentUserTask,
+                                ),
+                              ],
+                            ] else ...[
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildDetailCard(
+                                      icon: Icons.calendar_today,
+                                      title: 'Date création',
+                                      content: _formatDate(tache.dateCreation),
+                                      isReadOnly: !isCurrentUserTask,
+                                    ),
+                                  ),
+                                  if (tache.dateRealisation != null) ...[
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: _buildDetailCard(
+                                        icon: Icons.event_available,
+                                        title: 'Date réalisation',
+                                        content: _formatDate(
+                                          tache.dateRealisation!,
+                                        ),
+                                        isReadOnly: !isCurrentUserTask,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+
+                            const SizedBox(height: 16),
+
+                            // Métadonnées
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _buildStatusBadge(
+                                  tache.statutTache,
+                                  isReadOnly: !isCurrentUserTask,
+                                ),
+                                _buildMetaDataCard(
+                                  icon: Icons.priority_high,
+                                  title: 'Priorité',
+                                  value: _getPrioriteTacheText(tache.priorite),
+                                  color: _getPrioriteColor(tache.priorite),
+                                  isReadOnly: !isCurrentUserTask,
+                                ),
+                                _buildMetaDataCard(
+                                  icon: Icons.person,
+                                  title: 'Assignée à',
+                                  value: tache.userName ?? 'Non assignée',
+                                ),
+                                _buildMetaDataCard(
+                                  icon: Icons.attach_money,
+                                  title: 'Budget',
+                                  value:
+                                      '${tache.budget.toStringAsFixed(2)} Dt',
+                                  isReadOnly: !isCurrentUserTask,
+                                ),
+                                _buildMetaDataCard(
+                                  icon: Icons.money_off,
+                                  title: 'Dépenses',
+                                  value:
+                                      '${tache.depenses?.toStringAsFixed(2) ?? '0.00'} Dt',
+                                  isReadOnly: !isCurrentUserTask,
+                                ),
+                              ],
                             ),
                           ],
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+                        );
+                      },
+                    ),
 
-                      // Section métadonnées réorganisée
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          _buildStatusBadge(
-                            tache.statutTache,
-                            isReadOnly: !isCurrentUserTask,
-                          ),
-                          _buildMetaDataCard(
-                            icon: Icons.priority_high,
-                            title: 'Priorité',
-                            value: _getPrioriteTacheText(tache.priorite),
-                            color: _getPrioriteColor(tache.priorite),
-                            isReadOnly: !isCurrentUserTask,
-                          ),
-                          _buildMetaDataCard(
-                            icon: Icons.person,
-                            title: 'Assignée à',
-                            value: tache.userName ?? 'Non assignée',
-                          ),
-                          _buildMetaDataCard(
-                            icon: Icons.attach_money,
-                            title: 'Budget',
-                            value: '${tache.budget.toStringAsFixed(2)} Dt',
-                            isReadOnly: !isCurrentUserTask,
-                          ),
-                          _buildMetaDataCard(
-                            icon: Icons.attach_money,
-                            title: 'Dépenses',
-                            value: '${tache.depenses?.toStringAsFixed(2)} Dt',
-                            isReadOnly: !isCurrentUserTask,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                      // Section boutons d'action unifiée
-                      if (isCurrentUserTask) ...[
-                        const Divider(),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Actions',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF2A5298),
-                          ),
+                    // ── Actions utilisateur ─────────────────
+                    if (isCurrentUserTask) ...[
+                      const Divider(),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Actions',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF2A5298),
                         ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            if (tache.statutTache == StatutTache.PLANIFIEE)
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.play_arrow, size: 18),
-                                label: const Text('Commencer'),
-                                onPressed: () {
-                                  _showConfirmationDialog(
-                                    context: context,
-                                    title: 'Confirmation',
-                                    content:
-                                        'Voulez-vous vraiment commencer cette tâche?',
-                                    onConfirm: () {
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        alignment: WrapAlignment.center,
+                        children: [
+                          if (tache.statutTache == StatutTache.PLANIFIEE)
+                            _buildActionIcon(
+                              icon: Icons.play_arrow,
+                              tooltip: 'Commencer',
+                              backgroundColor: Colors.green.shade700
+                                  .withOpacity(0.2),
+                              iconColor: Colors.green.shade900,
+                              onTap:
+                                  () => _confirmAndExecute(
+                                    context,
+                                    'Commencer la tâche',
+                                    'Voulez-vous vraiment commencer cette tâche ?',
+                                    () {
                                       context
                                           .read<TacheProvider>()
                                           .updateStatutTache(
                                             tache.tacheId,
                                             StatutTache.ENCOURS,
                                           );
-
                                       Navigator.pop(context);
                                       context
                                           .read<TacheProvider>()
@@ -477,21 +552,22 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
                                             tache.tacheId,
                                           );
                                     },
-                                  );
-                                },
-                                style: _dialogButtonStyle,
+                                  ),
+                            ),
+                          if (tache.statutTache == StatutTache.ENCOURS)
+                            _buildActionIcon(
+                              icon: Icons.check,
+                              tooltip: 'Terminer',
+                              backgroundColor: Colors.blue.shade700.withOpacity(
+                                0.2,
                               ),
-                            if (tache.statutTache == StatutTache.ENCOURS)
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.check, size: 18),
-                                label: const Text('Terminer'),
-                                onPressed: () {
-                                  _showConfirmationDialog(
-                                    context: context,
-                                    title: 'Confirmation',
-                                    content:
-                                        'Voulez-vous vraiment marquer cette tâche comme terminée?',
-                                    onConfirm: () {
+                              iconColor: Colors.blue.shade900,
+                              onTap:
+                                  () => _confirmAndExecute(
+                                    context,
+                                    'Terminer la tâche',
+                                    'Voulez-vous vraiment marquer cette tâche comme terminée ?',
+                                    () {
                                       context
                                           .read<TacheProvider>()
                                           .updateStatutTache(
@@ -500,22 +576,23 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
                                           );
                                       Navigator.pop(context);
                                     },
-                                  );
-                                },
-                                style: _dialogButtonStyle,
+                                  ),
+                            ),
+                          if (tache.statutTache != StatutTache.ANNULEE &&
+                              tache.statutTache != StatutTache.TERMINEE)
+                            _buildActionIcon(
+                              icon: Icons.cancel,
+                              tooltip: 'Annuler',
+                              backgroundColor: Colors.red.shade700.withOpacity(
+                                0.2,
                               ),
-                            if (tache.statutTache != StatutTache.ANNULEE &&
-                                tache.statutTache != StatutTache.TERMINEE)
-                              ElevatedButton.icon(
-                                icon: const Icon(Icons.cancel, size: 18),
-                                label: const Text('Annuler'),
-                                onPressed: () {
-                                  _showConfirmationDialog(
-                                    context: context,
-                                    title: 'Confirmation',
-                                    content:
-                                        'Voulez-vous vraiment annuler cette tâche?',
-                                    onConfirm: () {
+                              iconColor: Colors.red.shade900,
+                              onTap:
+                                  () => _confirmAndExecute(
+                                    context,
+                                    'Annuler la tâche',
+                                    'Voulez-vous vraiment annuler cette tâche ?',
+                                    () {
                                       context
                                           .read<TacheProvider>()
                                           .updateStatutTache(
@@ -524,81 +601,57 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
                                           );
                                       Navigator.pop(context);
                                     },
-                                  );
-                                },
-                                style: _dialogButtonStyle.copyWith(
-                                  backgroundColor: MaterialStateProperty.all(
-                                    Colors.red,
                                   ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                      ],
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                     ],
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.receipt_long),
-                      label: const Text('Voir dépenses'),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder:
-                                (context) => DepensesParTacheScreen(
-                                  tacheId: tache.tacheId,
-                                ),
+
+                    // Voir dépenses et fermer
+                    Center(
+                      child: Wrap(
+                        spacing: 24,
+                        children: [
+                          if (tache.statutTache != StatutTache.PLANIFIEE)
+                            _buildActionIcon(
+                              icon: Icons.receipt_long,
+                              tooltip: 'Voir dépenses',
+                              backgroundColor: Colors.purple.shade700
+                                  .withOpacity(0.2),
+                              iconColor: Colors.purple.shade900,
+                              size: 56,
+                              onTap: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (_) => DepensesParTacheScreen(
+                                          tacheId: tache.tacheId,
+                                        ),
+                                  ),
+                                );
+                              },
+                            ),
+                          _buildActionIcon(
+                            icon: Icons.close,
+                            tooltip: 'Fermer',
+                            backgroundColor: Colors.grey.shade700.withOpacity(
+                              0.2,
+                            ),
+                            iconColor: Colors.grey.shade900,
+                            size: 56,
+                            onTap: () => Navigator.pop(context),
                           ),
-                        );
-                      },
-                      style: _dialogButtonStyle.copyWith(
-                        minimumSize: MaterialStateProperty.all(
-                          const Size(150, 50),
-                        ),
+                        ],
                       ),
                     ),
-                  ),
-  IconButton(
-  icon: const Icon(Icons.notifications),
-  onPressed: () {
-    // Action de test ici
-    print('Icône de notification cliquée');
-    // ou navigation vers une page de notification factice
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) =>  NotificationsPage()), // Remplace NotificationPage par ta page cible
-    );
-  },
-),
-
-      
-                  const SizedBox(height: 8),
-
-                  // Bouton Fermer
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: _dialogButtonStyle.copyWith(
-                        minimumSize: MaterialStateProperty.all(
-                          const Size(150, 50),
-                        ),
-                      ),
-                      child: const Text(
-                        'Fermer',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        );
-      },
     );
   }
 
@@ -661,10 +714,21 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
       startIndex,
       endIndex < filteredTaches.length ? endIndex : filteredTaches.length,
     );
+    final missionProvider = Provider.of<MissionProvider>(
+      context,
+      listen: false,
+    );
+    final MissionDTO? m = missionProvider.getMissionById(widget.missionId);
 
+    if (m == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Mission introuvable')),
+        body: const Center(child: Text('Aucune mission trouvée avec cet ID')),
+      );
+    }
     return Scaffold(
       appBar: AppBar(
-        title: Text('Tâches de la mission #${widget.missionId}'),
+        title: Text('Tâches ${m.titre}'),
         centerTitle: true,
         backgroundColor: const Color(0xFF2A5298),
         actions: [

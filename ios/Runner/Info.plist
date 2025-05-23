@@ -49,6 +49,8 @@
 <string>Nous avons besoin d'accéder à la caméra pour permettre l'ajout de votre photo de profil.</string>
 <key>NSPhotoLibraryUsageDescription</key>
 <string>Nous avons besoin d'accéder à votre galerie pour choisir une photo.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>Cette app a besoin de votre localisation pour afficher votre position sur la carte</string>
 <key>CFBundleURLTypes</key>
 <array>
     <dict>
