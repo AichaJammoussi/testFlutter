@@ -25,6 +25,7 @@ class RapportProvider with ChangeNotifier {
     isLoading = false;
     notifyListeners();
   }
+
   /// Validation par l'employé
   Future<bool> validerParEmploye(int missionId) async {
     try {
@@ -38,14 +39,20 @@ class RapportProvider with ChangeNotifier {
     }
   }
 
-  /// Vérifie si tous ont validé
-  Future<void> checkTousOntValide(int missionId) async {
+  Future<bool> checkTousOntValide(int missionId) async {
     try {
-      tousValides = await _service.tousOntValide(missionId);
-    } catch (e) {
-      error = "Erreur de vérification: ${e.toString()}";
+      error = null; // Reset error
+      final result = await _service.tousOntValide(missionId);
+      tousValides = result;
+      notifyListeners();
+      return result;
+    } catch (e, stackTrace) {
+      tousValides = false; // fallback
+      error = "Erreur de vérification : ${e.toString()}";
+      debugPrint('Erreur checkTousOntValide: $e\n$stackTrace');
+      notifyListeners();
+      return false;
     }
-    notifyListeners();
   }
 
   /// Validation admin (oui/non)

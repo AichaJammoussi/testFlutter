@@ -11,6 +11,7 @@ import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
 import 'package:testfront/core/providers/rapportProvider.dart';
 import 'package:testfront/core/providers/tache_provider.dart';
+import 'package:testfront/core/services/generatePdf.dart';
 import 'package:testfront/features/mission/TacheMission.dart';
 
 class MissionsScreen extends StatefulWidget {
@@ -680,11 +681,34 @@ class _MissionsScreenState extends State<MissionsScreen> {
     );
   }
 
-  void _showMissionDetails(BuildContext context, MissionDTO mission) {
-     final userProvider = Provider.of<UserProvider>(context, listen: false);
-  final userRoles = userProvider.user?.roles ?? [];
+  Future<void> _prendreDecision(
+    BuildContext context,
+    int missionId,
+    bool accepte,
+  ) async {
+    final rapportProvider = Provider.of<RapportProvider>(
+      context,
+      listen: false,
+    );
+    final success = await rapportProvider.validerParAdmin(missionId, accepte);
 
-  final isAdmin = userRoles.contains('admin'); 
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? (accepte ? 'Mission acceptée.' : 'Mission refusée.')
+              : 'Échec lors de la validation par l\'admin.',
+        ),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
+  void _showMissionDetails(BuildContext context, MissionDTO mission) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userRoles = userProvider.user?.roles ?? [];
+
+    final isAdmin = userRoles.contains('admin');
     showDialog(
       context: context,
       builder:
@@ -828,6 +852,257 @@ class _MissionsScreenState extends State<MissionsScreen> {
                               .toList(),
                     ),
 
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        final rapportProvider = context.read<RapportProvider>();
+
+                        // Chargement du rapport
+                        await rapportProvider.loadRapport(mission.missionId);
+
+                        if (!context.mounted) return;
+
+                        final rapport = rapportProvider.rapport;
+                        if (rapport != null) {
+                          // Génération PDF
+                          await generateMissionRapportPdf(rapport);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                '📄 Rapport PDF généré avec succès',
+                              ),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '❌ Échec de génération : ${rapportProvider.error ?? "rapport non disponible"}',
+                              ),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.picture_as_pdf),
+                      label: const Text("📄 Générer le rapport PDF"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.indigo,
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Validation du rapport par l\'administrateur',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2A5298),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    StatefulBuilder(
+                      builder: (context, setState) {
+                        // Variable d’état déclarée une seule fois grâce à une variable locale en closure
+                        bool _adminDecision = false;
+
+                        // On déplace _adminDecision en variable mutable capturée
+                        // On doit créer une variable mutable en closure (ex: via un List ou Wrapper)
+                        final adminDecisionWrapper = [false];
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                IconButton(
+                                  tooltip: "Accepter le rapport",
+                                  icon: const Icon(
+                                    Icons.check_circle,
+                                    color: Colors.green,
+                                    size: 36,
+                                  ),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder:
+                                          (_) => AlertDialog(
+                                            title: const Text("Confirmer"),
+                                            content: const Text(
+                                              "Voulez-vous accepter ce rapport ?",
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                child: const Text("Annuler"),
+                                                onPressed:
+                                                    () => Navigator.pop(
+                                                      context,
+                                                      false,
+                                                    ),
+                                              ),
+                                              ElevatedButton(
+                                                child: const Text("Confirmer"),
+                                                onPressed:
+                                                    () => Navigator.pop(
+                                                      context,
+                                                      true,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                    );
+
+                                    if (confirm == true) {
+                                      adminDecisionWrapper[0] = true;
+                                      setState(
+                                        () {},
+                                      ); // rafraîchir si tu as des UI liées à cette variable
+
+                                      final success =
+                                          await Provider.of<RapportProvider>(
+                                            context,
+                                            listen: false,
+                                          ).validerParAdmin(
+                                            mission.missionId,
+                                            true,
+                                          );
+
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            success
+                                                ? "Rapport accepté"
+                                                : "Erreur lors de la validation",
+                                          ),
+                                          backgroundColor:
+                                              success
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                        ),
+                                      );
+                                      if (success) Navigator.pop(context);
+                                    }
+                                  },
+                                ),
+                                IconButton(
+                                  tooltip: "Refuser le rapport",
+                                  icon: const Icon(
+                                    Icons.cancel,
+                                    color: Colors.red,
+                                    size: 36,
+                                  ),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder:
+                                          (_) => AlertDialog(
+                                            title: const Text("Confirmer"),
+                                            content: const Text(
+                                              "Voulez-vous refuser ce rapport ?",
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                child: const Text("Annuler"),
+                                                onPressed:
+                                                    () => Navigator.pop(
+                                                      context,
+                                                      false,
+                                                    ),
+                                              ),
+                                              ElevatedButton(
+                                                child: const Text("Confirmer"),
+                                                onPressed:
+                                                    () => Navigator.pop(
+                                                      context,
+                                                      true,
+                                                    ),
+                                              ),
+                                            ],
+                                          ),
+                                    );
+
+                                    if (confirm == true) {
+                                      adminDecisionWrapper[0] = false;
+                                      setState(
+                                        () {},
+                                      ); // rafraîchir UI si besoin
+
+                                      final success =
+                                          await Provider.of<RapportProvider>(
+                                            context,
+                                            listen: false,
+                                          ).validerParAdmin(
+                                            mission.missionId,
+                                            false,
+                                          );
+
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            success
+                                                ? "Rapport refusé"
+                                                : "Erreur lors du refus",
+                                          ),
+                                          backgroundColor:
+                                              success
+                                                  ? Colors.orange
+                                                  : Colors.red,
+                                        ),
+                                      );
+                                      if (success) Navigator.pop(context);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            ElevatedButton(
+                              onPressed: () async {
+                                final success =
+                                    await Provider.of<RapportProvider>(
+                                      context,
+                                      listen: false,
+                                    ).validerParAdmin(
+                                      mission.missionId,
+                                      adminDecisionWrapper[0],
+                                    );
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      success
+                                          ? (adminDecisionWrapper[0]
+                                              ? "Rapport accepté"
+                                              : "Rapport refusé")
+                                          : "Erreur lors de la soumission",
+                                    ),
+                                    backgroundColor:
+                                        success ? Colors.green : Colors.red,
+                                  ),
+                                );
+
+                                if (success) Navigator.pop(context);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.indigo,
+                                minimumSize: const Size(double.infinity, 48),
+                              ),
+                              child: const Text("Soumettre la décision"),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+
                     const SizedBox(height: 24),
                     Center(
                       child: ElevatedButton(
@@ -851,7 +1126,6 @@ class _MissionsScreenState extends State<MissionsScreen> {
     );
   }
 
-  /// Colonne gauche : description, dates prévues & réelles, budget/dépenses
   Widget _buildLeftDetails(MissionDTO mission) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

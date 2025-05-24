@@ -26,4 +26,13 @@ class TacheRapportDto {
           .toList(),
     );
   }
+  DateTime? get dateRealisationAsDateTime {
+  if (dateRealisation == null) return null;
+  try {
+    return DateTime.parse(dateRealisation!);
+  } catch (_) {
+    return null;
+  }
+}
+
 }

@@ -10,6 +10,7 @@ import 'package:testfront/core/providers/mission_provider.dart';
 import 'package:testfront/core/providers/rapportProvider.dart';
 import 'package:testfront/core/providers/remboursement_provider.dart';
 import 'package:testfront/core/providers/tache_provider.dart';
+import 'package:testfront/core/services/generatePdf.dart';
 import 'package:testfront/features/mission/TacheMission.dart';
 import 'package:testfront/features/mission/tacheEmploye.dart';
 import 'package:collection/collection.dart';
@@ -584,36 +585,44 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
                       ...[
                         const SizedBox(height: 20),
 
-                        // 🔹 Bouton Générer Rapport
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            final rapportProvider =
-                                context.read<RapportProvider>();
-                            await rapportProvider.loadRapport(
-                              mission.missionId,
-                            );
+ElevatedButton.icon(
+  onPressed: () async {
+    final rapportProvider = context.read<RapportProvider>();
 
-                            if (context.mounted) {
-                              final rapport = rapportProvider.rapport;
-                              if (rapport != null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      '📄 Rapport généré avec succès',
-                                    ),
-                                    backgroundColor: Colors.green,
-                                  ),
-                                );
-                              }
-                            }
-                          },
-                          icon: const Icon(Icons.description),
-                          label: const Text("📄 Générer le rapport"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.indigo,
-                            minimumSize: const Size(double.infinity, 48),
-                          ),
-                        ),
+    // Chargement du rapport
+    await rapportProvider.loadRapport(mission.missionId);
+
+    if (!context.mounted) return;
+
+    final rapport = rapportProvider.rapport;
+    if (rapport != null) {
+      // Génération PDF
+      await generateMissionRapportPdf(rapport);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('📄 Rapport PDF généré avec succès'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '❌ Échec de génération : ${rapportProvider.error ?? "rapport non disponible"}',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  },
+  icon: const Icon(Icons.picture_as_pdf),
+  label: const Text("📄 Générer le rapport PDF"),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.indigo,
+    minimumSize: const Size(double.infinity, 48),
+  ),
+),
 
                         const SizedBox(height: 20),
 

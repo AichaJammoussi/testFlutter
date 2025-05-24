@@ -57,7 +57,9 @@ class RapportService {
   /// ✅ L'employé valide le rapport
   Future<bool> validerParEmploye(int missionId) async {
     final headers = await _getHeaders();
-    final url = Uri.parse('$_baseUrl/api/RapportMission/valider-employe/$missionId');
+    final url = Uri.parse(
+      '$_baseUrl/api/RapportMission/valider-employe/$missionId',
+    );
 
     print('📤 Envoi de validation du rapport pour la mission $missionId');
 
@@ -72,7 +74,7 @@ class RapportService {
   /// ❓ Vérifie si tous les employés ont validé
   Future<bool> tousOntValide(int missionId) async {
     final headers = await _getHeaders();
-    final url = Uri.parse('$_baseUrl/tous-employes-valides/$missionId');
+    final url = Uri.parse('$_baseUrl/api/RapportMission/tous-employes-valides/$missionId');
 
     print(
       '🔍 Vérification si tous les employés ont validé pour la mission $missionId',
@@ -98,9 +100,15 @@ class RapportService {
     final headers = await _getHeaders();
 
     final url = Uri.parse(
-      '$_baseUrl/valider-par-admin/$missionId?accepte=$accepte',
+      '$_baseUrl/api/RapportMission/valider-par-admin/$missionId?accepte=$accepte',
     );
-    final response = await http.post(url, headers: await headers);
+
+    print('🛰️ Envoi POST vers : $url');
+    print('📦 Headers: $headers');
+
+    final response = await http.post(url, headers: headers);
+
+    print('📬 Réponse [${response.statusCode}]: ${response.body}');
 
     return response.statusCode == 200;
   }
