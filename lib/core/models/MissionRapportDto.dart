@@ -12,9 +12,7 @@ class MissionRapportDto {
   final List<UserTachesRapportDto> tachesParEmploye;
   final List<EmployeMissionRapportDto> employesMission;
 
-  final bool? estAccepteParAdmin;
-  final DateTime? dateDecisionAdmin;
-  final String? adminId;
+
 
   MissionRapportDto({
     required this.missionId,
@@ -26,9 +24,7 @@ class MissionRapportDto {
     required this.depenses,
     required this.tachesParEmploye,
     required this.employesMission,
-    this.estAccepteParAdmin,
-    this.dateDecisionAdmin,
-    this.adminId,
+  
   });
 
   factory MissionRapportDto.fromJson(Map<String, dynamic> json) {
@@ -46,11 +42,7 @@ class MissionRapportDto {
       employesMission: (json['employesMission'] as List<dynamic>)
           .map((e) => EmployeMissionRapportDto.fromJson(e))
           .toList(),
-      estAccepteParAdmin: json['estAccepteParAdmin'],
-      dateDecisionAdmin: json['dateDecisionAdmin'] != null
-          ? DateTime.parse(json['dateDecisionAdmin'])
-          : null,
-      adminId: json['adminId'],
+     
     );
   }
 }

@@ -4146,6 +4146,7 @@ import 'package:testfront/core/models/MissionDTO.dart';
 import 'package:testfront/core/models/NotificationCreateDTO.dart';
 import 'package:testfront/core/models/PrioriteTache.dart';
 import 'package:testfront/core/models/StatusTache.dart';
+import 'package:testfront/core/models/StatutMission.dart';
 import 'package:testfront/core/models/TacheUpdateDTO.dart';
 import 'package:testfront/core/models/UserDto.dart';
 import 'package:testfront/core/models/tache_creation_dto.dart';
@@ -4673,35 +4674,37 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
           content: '${tache.budget.toStringAsFixed(2)} Dt',
         ),
         if (tache.depenses != null) ...[
-  const SizedBox(height: 12),
-  Row(
-    children: [
-      // Carte des dépenses
-      Expanded(
-        child: _buildDetailCard(
-          icon: Icons.mobile_friendly_rounded,
-          title: 'Dépenses',
-          content: '${tache.depenses?.toStringAsFixed(2)} Dt',
-        ),
-      ),
-      const SizedBox(width: 8),
-      // Icône vers DepensesParTacheScreen
-      IconButton(
-        icon: const Icon(Icons.open_in_new),
-        tooltip: 'Voir les détails des dépenses',
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => DepensesParTacheScreenAdmin(tacheId: tache.tacheId),
-            ),
-          );
-        },
-      ),
-    ],
-  ),
-],
-
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              // Carte des dépenses
+              Expanded(
+                child: _buildDetailCard(
+                  icon: Icons.mobile_friendly_rounded,
+                  title: 'Dépenses',
+                  content: '${tache.depenses?.toStringAsFixed(2)} Dt',
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Icône vers DepensesParTacheScreen
+              IconButton(
+                icon: const Icon(Icons.open_in_new),
+                tooltip: 'Voir les détails des dépenses',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (_) => DepensesParTacheScreenAdmin(
+                            tacheId: tache.tacheId,
+                          ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -5002,7 +5005,6 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                                       }
                                     });
                                   },
-
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     mainAxisAlignment: MainAxisAlignment.center,
@@ -5410,23 +5412,25 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
         return _sortByDateAsc ? dateComparison : -dateComparison;
       });
     }
-  final missionProvider = Provider.of<MissionProvider>(context, listen: false);
-  final MissionDTO? m = missionProvider.getMissionById(widget.missionId);
-  
-  
-      // Pagination
+    final missionProvider = Provider.of<MissionProvider>(
+      context,
+      listen: false,
+    );
+    final MissionDTO? m = missionProvider.getMissionById(widget.missionId);
+
+    // Pagination
     final startIndex = (_currentPage - 1) * _itemsPerPage;
     final endIndex = startIndex + _itemsPerPage;
     final paginatedTaches = filteredTaches.sublist(
       startIndex,
       endIndex < filteredTaches.length ? endIndex : filteredTaches.length,
     );
-      if (m == null) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Mission introuvable')),
-      body: const Center(child: Text('Aucune mission trouvée avec cet ID')),
-    );
-  }
+    if (m == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Mission introuvable')),
+        body: const Center(child: Text('Aucune mission trouvée avec cet ID')),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -5476,7 +5480,11 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
 
                     // Bouton Ajouter avec icône et texte
                     ElevatedButton.icon(
-                      onPressed: () => _showAddTacheDialog(context),
+                      onPressed:
+                          (m.statut == StatutMission.TERMINEE ||
+                                  m.statut == StatutMission.ANNULEE)
+                              ? null
+                              : () => _showAddTacheDialog(context),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,

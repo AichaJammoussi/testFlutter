@@ -58,6 +58,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MissionProvider>().loadMissions();
+      context.read<TacheProvider>().fetchAllTaches(); 
     });
 
     _searchController.addListener(() {

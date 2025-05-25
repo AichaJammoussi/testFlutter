@@ -626,75 +626,9 @@ ElevatedButton.icon(
 
                         const SizedBox(height: 20),
 
-                        // 🔹 Checkbox après génération du rapport
-                        Consumer2<RapportProvider, UserProvider>(
-                          builder: (context, rapportProvider, userProvider, _) {
-                            final rapport = rapportProvider.rapport;
-                            final userId =
-                                userProvider.user?.id; 
-
-                            print("👤 userId depuis UserProvider: $userId");
-                            print("📋 Rapport: ${rapport?.missionId}");
-
-                            if (rapport == null || userId == null) {
-                              return const SizedBox.shrink(); // Attendre que les données soient chargées
-                            }
-
-                            final employe = rapport.tachesParEmploye
-                                .firstWhereOrNull((e) => e.userId == userId);
-
-                            if (employe == null) {
-                              print("❌ Employé non trouvé dans le rapport");
-                              return const SizedBox.shrink();
-                            }
-
-                            return StatefulBuilder(
-                              builder: (context, setState) {
-                                return CheckboxListTile(
-                                  title: const Text("✅ J'ai validé le rapport"),
-                                  value: employe.estValide,
-                                  onChanged: (checked) async {
-                                    if (checked == true && !employe.estValide) {
-                                      print(
-                                        "📤 Validation en cours pour mission ${rapport.missionId}...",
-                                      );
-
-                                      final success = await rapportProvider
-                                          .validerParEmploye(mission.missionId);
-
-                                      if (success) {
-                                        print("✅ Validation réussie");
-                                        await rapportProvider.loadRapport(
-                                          mission.missionId,
-                                        ); // met à jour l'état
-                                        setState(
-                                          () {},
-                                        ); // Reconstruit avec le nouveau état
-
-                                        if (context.mounted) {
-                                          ScaffoldMessenger.of(
-                                            context,
-                                          ).showSnackBar(
-                                            const SnackBar(
-                                              content: Text(
-                                                '✔ Rapport validé avec succès',
-                                              ),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                        }
-                                      } else {
-                                        print("❌ Échec de la validation");
-                                      }
-                                    }
-                                  },
-                                );
-                              },
-                            );
-                          },
-                        ),
+                
+                         
                       ],
-                    ],
 
                     _buildDetailRow('📄 Description', mission.description),
                     _buildDetailRow(
@@ -766,7 +700,7 @@ ElevatedButton.icon(
                                 .toList(),
                       ),
                     ],
-                  ],
+                   ] ],
                 ),
               ),
             ),
