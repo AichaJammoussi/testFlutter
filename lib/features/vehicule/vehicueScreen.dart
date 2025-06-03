@@ -898,105 +898,70 @@ class _VehiculeScreenState extends State<VehiculeScreen> {
     );
   }
 
-  void _confirmDelete(BuildContext context, VehiculeDTO v) {
-    showDialog(
+  void _confirmDelete(BuildContext context, VehiculeDTO v) async {
+    await showDialog(
       context: context,
       builder:
-          (context) => Center(
-            child: Container(
-              constraints: BoxConstraints(
-                maxWidth: 400, // Dialog de suppression plus petit
-                maxHeight: 300,
-              ),
-              child: Dialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                backgroundColor: _backgroundBlue,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+          (_) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.warning, size: 48, color: Color(0xFFF44336)),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Confirmer la suppression',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Voulez-vous vraiment supprimer le véhicule "${v.marque} ${v.modele}" ?',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFF44336).withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.warning, color: Color(0xFFF44336)),
-                            SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Confirmer la suppression',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: _textBlue,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Annuler'),
                       ),
-                      SizedBox(height: 20),
-                      Text(
-                        'Supprimer le véhicule ${v.marque} ${v.modele} ?',
-                        style: TextStyle(color: _textBlue),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            style: TextButton.styleFrom(
-                              foregroundColor: _textBlue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('Annuler'),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF44336),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          SizedBox(width: 10),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFFF44336),
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          try {
+                            await Provider.of<VehiculeProvider>(
+                              context,
+                              listen: false,
+                            ).deleteVehicule(v.vehiculeId);
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Erreur: ${e.toString()}'),
+                                backgroundColor: const Color(0xFFF44336),
                               ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                            ),
-                            onPressed: () async {
-                              Navigator.pop(context);
-                              try {
-                                await Provider.of<VehiculeProvider>(
-                                  context,
-                                  listen: false,
-                                ).deleteVehicule(v.vehiculeId);
-                              } catch (e) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Erreur: ${e.toString()}'),
-                                    backgroundColor: Color(0xFFF44336),
-                                  ),
-                                );
-                              }
-                            },
-                            child: Text('Supprimer'),
-                          ),
-                        ],
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Supprimer',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
                     ],
                   ),
-                ),
+                ],
               ),
             ),
           ),

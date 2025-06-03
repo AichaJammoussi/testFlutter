@@ -156,8 +156,9 @@ class _MesRemboursementsScreenState extends State<MesRemboursementsScreen> {
                           ),
                         Text(
                           '${_getTypeDemandeMessage(remb.montant)}\n'
-                          'Montant : ${remb.montant.abs().toStringAsFixed(2)} DT\n'
+                          'Montant : ${remb.montant.abs().toStringAsFixed(3)} DT\n'
                           'Demandé le : ${DateFormat('dd/MM/yyyy– HH:mm').format(remb.dateDemande)}',
+                          
                           style: const TextStyle(fontSize: 14),
                         ),
                       ],

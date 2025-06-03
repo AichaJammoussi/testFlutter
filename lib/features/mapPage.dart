@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -19,22 +20,66 @@ class _MapPageState extends State<MapPage> {
   List<Polyline> _routeLines = [];
   LatLng _currentCenter = LatLng(48.8566, 2.3522);
   LatLng? _userLocation;
-  LatLng? _pointA;
-  LatLng? _pointB;
-  String? _pointAName;
-  String? _pointBName;
-  LatLng? _selectedDestination;
+  List<Map<String, dynamic>> _destinations = [];
+  Map<String, dynamic>? _activeDestination;
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
   bool _isNavigating = false;
-  bool _isSelectingPointA = false;
-  bool _isSelectingPointB = false;
+  bool _isSelectingDestination = false;
   StreamSubscription<Position>? _positionStream;
+
+  // Couleurs pastel foncées
+  final List<Color> _destinationColors = [
+    Color(0xFF8B5A3C), // Brun pastel foncé
+    Color(0xFF6B5B95), // Violet pastel foncé
+    Color(0xFF88A96F), // Vert pastel foncé
+    Color(0xFF9B7BB8), // Lavande pastel foncé
+    Color(0xFF8FB4A3), // Turquoise pastel foncé
+    Color(0xFFB5838C), // Rose pastel foncé
+    Color(0xFF8B7A6B), // Beige pastel foncé
+    Color(0xFF7B9BAB), // Bleu gris pastel foncé
+  ];
 
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
+    _loadDestinations().then((_) {
+      _getCurrentLocation();
+    });
+  }
+
+  // Sauvegarder les destinations
+  Future<void> _saveDestinations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final destinationsJson = _destinations.map((dest) {
+      return jsonEncode({
+        'id': dest['id'],
+        'name': dest['name'],
+        'lat': dest['position'].latitude,
+        'lng': dest['position'].longitude,
+        'color': dest['color'].value,
+      });
+    }).toList();
+    
+    await prefs.setStringList('saved_destinations', destinationsJson);
+  }
+
+  // Charger les destinations
+  Future<void> _loadDestinations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final destinationsJson = prefs.getStringList('saved_destinations') ?? [];
+    
+    setState(() {
+      _destinations = destinationsJson.map((jsonStr) {
+        final data = jsonDecode(jsonStr);
+        return {
+          'id': data['id'],
+          'name': data['name'],
+          'position': LatLng(data['lat'], data['lng']),
+          'color': Color(data['color']),
+        };
+      }).toList();
+    });
   }
 
   // Obtenir la position actuelle
@@ -60,6 +105,11 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
+  // Obtenir une couleur pour une nouvelle destination
+  Color _getColorForDestination(int index) {
+    return _destinationColors[index % _destinationColors.length];
+  }
+
   // Mettre à jour tous les marqueurs
   void _updateMarkers() {
     setState(() {
@@ -75,16 +125,16 @@ class _MapPageState extends State<MapPage> {
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    width: 20,
-                    height: 20,
+                    width: 18,
+                    height: 18,
                     decoration: BoxDecoration(
                       color: Colors.blue.withOpacity(0.3),
                       shape: BoxShape.circle,
                     ),
                   ),
                   Container(
-                    width: 12,
-                    height: 12,
+                    width: 10,
+                    height: 10,
                     decoration: BoxDecoration(
                       color: Colors.blue,
                       shape: BoxShape.circle,
@@ -98,72 +148,44 @@ class _MapPageState extends State<MapPage> {
         );
       }
 
-      // Point A
-      if (_pointA != null) {
+      // Destinations
+      for (int i = 0; i < _destinations.length; i++) {
+        final destination = _destinations[i];
+        final isActive = _activeDestination != null && 
+                        _activeDestination!['id'] == destination['id'];
+        
         _markers.add(
           Marker(
-            point: _pointA!,
+            point: destination['position'],
             child: GestureDetector(
-              onTap: () => _showPointOptions('A', _pointA!, _pointAName ?? 'Point A'),
+              onTap: () => _showDestinationOptions(destination),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    constraints: BoxConstraints(maxWidth: 150),
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.green,
-                      borderRadius: BorderRadius.circular(12),
+                      color: destination['color'],
+                      borderRadius: BorderRadius.circular(8),
+                      border: isActive ? Border.all(color: Colors.white, width: 2) : null,
                     ),
                     child: Text(
-                      _pointAName ?? 'Point A',
+                      destination['name'],
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
                     ),
                   ),
                   Icon(
-                    Icons.location_pin,
-                    color: Colors.green,
-                    size: 40,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      }
-
-      // Point B
-      if (_pointB != null) {
-        _markers.add(
-          Marker(
-            point: _pointB!,
-            child: GestureDetector(
-              onTap: () => _showPointOptions('B', _pointB!, _pointBName ?? 'Point B'),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      _pointBName ?? 'Point B',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    Icons.location_pin,
-                    color: Colors.red,
-                    size: 40,
+                    isActive ? Icons.navigation : Icons.place,
+                    color: destination['color'],
+                    size: isActive ? 32 : 28,
                   ),
                 ],
               ),
@@ -172,79 +194,101 @@ class _MapPageState extends State<MapPage> {
         );
       }
     });
-  }
-
-  // Définir le point A
-  void _setPointA() {
-    setState(() {
-      _isSelectingPointA = true;
-      _isSelectingPointB = false;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Tapez sur la carte pour définir le Point A ou recherchez un lieu'),
-        action: SnackBarAction(
-          label: 'Annuler',
-          onPressed: () {
-            setState(() {
-              _isSelectingPointA = false;
-            });
-          },
-        ),
-      ),
-    );
-  }
-
-  // Définir le point B
-  void _setPointB() {
-    setState(() {
-      _isSelectingPointB = true;
-      _isSelectingPointA = false;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Tapez sur la carte pour définir le Point B ou recherchez un lieu'),
-        action: SnackBarAction(
-          label: 'Annuler',
-          onPressed: () {
-            setState(() {
-              _isSelectingPointB = false;
-            });
-          },
-        ),
-      ),
-    );
   }
 
   // Gérer le tap sur la carte
   void _onMapTap(LatLng point) {
-    if (_isSelectingPointA) {
-      setState(() {
-        _pointA = point;
-        _pointAName = 'Point A (${point.latitude.toStringAsFixed(4)}, ${point.longitude.toStringAsFixed(4)})';
-        _isSelectingPointA = false;
-      });
-      _updateMarkers();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Point A défini')),
-      );
-    } else if (_isSelectingPointB) {
-      setState(() {
-        _pointB = point;
-        _pointBName = 'Point B (${point.latitude.toStringAsFixed(4)}, ${point.longitude.toStringAsFixed(4)})';
-        _isSelectingPointB = false;
-      });
-      _updateMarkers();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Point B défini')),
-      );
+    if (_isSelectingDestination) {
+      _addDestination(point, 'Position personnalisée');
+    } else {
+      _showQuickNavigationDialog(point);
     }
   }
 
-  // Afficher les options pour un point
-  void _showPointOptions(String pointType, LatLng point, String pointName) {
+  // Afficher le dialogue de navigation rapide
+  void _showQuickNavigationDialog(LatLng point) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.place, color: Color(0xFF8B5A3C)),
+            SizedBox(width: 8),
+            Text('Nouveau point'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Que voulez-vous faire avec ce point ?'),
+            SizedBox(height: 8),
+            Text(
+              'Position: ${point.latitude.toStringAsFixed(4)}, ${point.longitude.toStringAsFixed(4)}',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _addDestination(point, 'Position sélectionnée');
+            },
+            child: Text('Ajouter destination'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _addDestination(point, 'Navigation directe');
+              final newDestination = _destinations.last;
+              _navigateToDestination(newDestination);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF8B5A3C),
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Naviguer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Ajouter une destination
+  void _addDestination(LatLng point, String name) {
+    final destination = {
+      'id': DateTime.now().millisecondsSinceEpoch.toString(),
+      'position': point,
+      'name': name,
+      'color': _getColorForDestination(_destinations.length),
+    };
+    
+    setState(() {
+      _destinations.add(destination);
+    });
+    _updateMarkers();
+    _saveDestinations();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Destination ajoutée: $name'),
+        backgroundColor: destination['color']as Color,
+        action: SnackBarAction(
+          label: 'Naviguer',
+          textColor: Colors.white,
+          onPressed: () => _navigateToDestination(destination),
+        ),
+      ),
+    );
+  }
+
+  // Afficher les options pour une destination
+  void _showDestinationOptions(Map<String, dynamic> destination) {
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -253,49 +297,35 @@ class _MapPageState extends State<MapPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(
-                Icons.location_pin,
-                color: pointType == 'A' ? Colors.green : Colors.red,
+              leading: Icon(Icons.place, color: destination['color']),
+              title: Text(destination['name']),
+              subtitle: Text(
+                '${destination['position'].latitude.toStringAsFixed(6)}, ${destination['position'].longitude.toStringAsFixed(6)}',
               ),
-              title: Text(pointName),
-              subtitle: Text('${point.latitude.toStringAsFixed(6)}, ${point.longitude.toStringAsFixed(6)}'),
             ),
             Divider(),
             ListTile(
-              leading: Icon(Icons.navigation, color: Colors.blue),
-              title: Text('Aller à ce point'),
+              leading: Icon(Icons.navigation, color: Color(0xFF6B5B95)),
+              title: Text('Naviguer vers cette destination'),
               onTap: () {
                 Navigator.pop(context);
-                _navigateToPoint(point, pointName);
+                _navigateToDestination(destination);
               },
             ),
             ListTile(
-              leading: Icon(Icons.edit, color: Colors.orange),
-              title: Text('Redéfinir ce point'),
+              leading: Icon(Icons.edit, color: Color(0xFF88A96F)),
+              title: Text('Renommer'),
               onTap: () {
                 Navigator.pop(context);
-                if (pointType == 'A') {
-                  _setPointA();
-                } else {
-                  _setPointB();
-                }
+                _renameDestination(destination);
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text('Supprimer ce point'),
+              leading: Icon(Icons.delete, color: Color(0xFFB5838C)),
+              title: Text('Supprimer'),
               onTap: () {
                 Navigator.pop(context);
-                setState(() {
-                  if (pointType == 'A') {
-                    _pointA = null;
-                    _pointAName = null;
-                  } else {
-                    _pointB = null;
-                    _pointBName = null;
-                  }
-                });
-                _updateMarkers();
+                _removeDestination(destination);
               },
             ),
           ],
@@ -304,20 +334,158 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  // Naviguer vers un point
-  void _navigateToPoint(LatLng destination, String destinationName) {
+  // Renommer une destination
+  void _renameDestination(Map<String, dynamic> destination) {
+    final controller = TextEditingController(text: destination['name']);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Renommer la destination'),
+        content: TextField(
+          controller: controller,
+          decoration: InputDecoration(
+            labelText: 'Nouveau nom',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (controller.text.isNotEmpty) {
+                setState(() {
+                  destination['name'] = controller.text;
+                });
+                _updateMarkers();
+                _saveDestinations();
+                Navigator.pop(context);
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: destination['color'],
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Renommer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Supprimer une destination
+  void _removeDestination(Map<String, dynamic> destination) {
+    setState(() {
+      _destinations.removeWhere((d) => d['id'] == destination['id']);
+      if (_activeDestination != null && _activeDestination!['id'] == destination['id']) {
+        _activeDestination = null;
+        _routeLines.clear();
+        _stopNavigation();
+      }
+    });
+    _updateMarkers();
+    _saveDestinations();
+  }
+
+  // Naviguer vers une destination
+  void _navigateToDestination(Map<String, dynamic> destination) {
+    setState(() {
+      _activeDestination = destination;
+    });
+    _updateMarkers();
+    _getRoute(destination['position'], destination['name']);
+  }
+
+  // Commencer la sélection de destination
+  void _startDestinationSelection() {
+    setState(() {
+      _isSelectingDestination = true;
+    });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Tapez sur la carte pour ajouter une destination'),
+        backgroundColor: Color(0xFF8B5A3C),
+        action: SnackBarAction(
+          label: 'Annuler',
+          textColor: Colors.white,
+          onPressed: () {
+            setState(() {
+              _isSelectingDestination = false;
+            });
+          },
+        ),
+        duration: Duration(seconds: 5),
+      ),
+    );
+  }
+
+  // Effacer toutes les destinations
+  void _clearAllDestinations() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Effacer toutes les destinations'),
+        content: Text('Êtes-vous sûr de vouloir supprimer toutes les destinations ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _destinations.clear();
+                _activeDestination = null;
+                _routeLines.clear();
+              });
+              _updateMarkers();
+              _stopNavigation();
+              _saveDestinations();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFFB5838C),
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Effacer tout'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Obtenir l'itinéraire
+  Future<void> _getRoute(LatLng destination, String destinationName) async {
     if (_userLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Position utilisateur non disponible')),
       );
       return;
     }
-    _getRoute(destination, destinationName);
-  }
 
-  // Obtenir l'itinéraire
-  Future<void> _getRoute(LatLng destination, String destinationName) async {
-    if (_userLocation == null) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: Color(0xFF6B5B95)),
+                SizedBox(height: 16),
+                Text('Calcul de l\'itinéraire...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
 
     try {
       final url = 'https://router.project-osrm.org/route/v1/driving/'
@@ -326,6 +494,8 @@ class _MapPageState extends State<MapPage> {
           '?overview=full&geometries=geojson';
 
       final response = await http.get(Uri.parse(url));
+      
+      Navigator.pop(context);
       
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -342,10 +512,9 @@ class _MapPageState extends State<MapPage> {
             Polyline(
               points: routePoints,
               strokeWidth: 4.0,
-              color: Colors.blue,
+              color: Color(0xFF6B5B95),
             ),
           );
-          _selectedDestination = destination;
         });
 
         _fitBounds([_userLocation!, destination]);
@@ -353,13 +522,31 @@ class _MapPageState extends State<MapPage> {
         final duration = route['duration'];
         final distance = route['distance'];
         _showRouteInfo(destinationName, duration, distance);
+      } else {
+        _showErrorDialog('Impossible de calculer l\'itinéraire');
       }
     } catch (e) {
-      print('Erreur itinéraire: $e');
+      Navigator.pop(context);
+      _showErrorDialog('Erreur de connexion: $e');
     }
   }
 
-  // Afficher les informations de l'itinéraire
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Erreur'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showRouteInfo(String destination, double duration, double distance) {
     final durationMin = (duration / 60).round();
     final distanceKm = (distance / 1000).toStringAsFixed(1);
@@ -373,7 +560,7 @@ class _MapPageState extends State<MapPage> {
           children: [
             Row(
               children: [
-                Icon(Icons.access_time, color: Colors.blue),
+                Icon(Icons.access_time, color: Color(0xFF6B5B95)),
                 SizedBox(width: 8),
                 Text('Durée: $durationMin min'),
               ],
@@ -381,7 +568,7 @@ class _MapPageState extends State<MapPage> {
             SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.straighten, color: Colors.green),
+                Icon(Icons.straighten, color: Color(0xFF88A96F)),
                 SizedBox(width: 8),
                 Text('Distance: $distanceKm km'),
               ],
@@ -396,8 +583,12 @@ class _MapPageState extends State<MapPage> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              _startNavigation(_selectedDestination!, destination);
+              _startNavigation(_activeDestination!['position'], destination);
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xFF6B5B95),
+              foregroundColor: Colors.white,
+            ),
             child: Text('Commencer'),
           ),
         ],
@@ -405,7 +596,6 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  // Commencer la navigation
   void _startNavigation(LatLng destination, String destinationName) {
     setState(() {
       _isNavigating = true;
@@ -437,8 +627,10 @@ class _MapPageState extends State<MapPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Navigation démarrée vers $destinationName'),
+        backgroundColor: Color(0xFF88A96F),
         action: SnackBarAction(
           label: 'Arrêter',
+          textColor: Colors.white,
           onPressed: _stopNavigation,
         ),
         duration: Duration(seconds: 3),
@@ -446,17 +638,16 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  // Arrêter la navigation
   void _stopNavigation() {
     _positionStream?.cancel();
     setState(() {
       _isNavigating = false;
+      _activeDestination = null;
       _routeLines.clear();
-      _selectedDestination = null;
     });
+    _updateMarkers();
   }
 
-  // Arrivé à destination
   void _arrivedAtDestination(String destinationName) {
     _stopNavigation();
     showDialog(
@@ -474,7 +665,6 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
-  // Ajuster la vue
   void _fitBounds(List<LatLng> points) {
     if (points.isEmpty) return;
     
@@ -500,7 +690,6 @@ class _MapPageState extends State<MapPage> {
     return 9.0;
   }
 
-  // Recherche avec Nominatim
   Future<void> _searchLocation(String query) async {
     if (query.isEmpty) return;
 
@@ -534,81 +723,23 @@ class _MapPageState extends State<MapPage> {
     }
   }
 
-  // Aller à un lieu recherché
   void _goToSearchedLocation(double lat, double lon, String name) {
     final position = LatLng(lat, lon);
+    _addDestination(position, name);
+    _mapController.move(position, 15.0);
     
-    if (_isSelectingPointA) {
-      setState(() {
-        _pointA = position;
-        _pointAName = name;
-        _isSelectingPointA = false;
-        _searchResults.clear();
-      });
-      _updateMarkers();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Point A défini: $name')),
-      );
-    } else if (_isSelectingPointB) {
-      setState(() {
-        _pointB = position;
-        _pointBName = name;
-        _isSelectingPointB = false;
-        _searchResults.clear();
-      });
-      _updateMarkers();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Point B défini: $name')),
-      );
-    } else {
-      _mapController.move(position, 15.0);
-      setState(() {
-        _searchResults.clear();
-      });
-    }
+    setState(() {
+      _searchResults.clear();
+    });
     _searchController.clear();
-  }
-
-  // Calculer l'itinéraire entre A et B
-  void _calculateRouteAB() {
-    if (_pointA == null || _pointB == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Veuillez définir les points A et B d\'abord')),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Choisir la destination'),
-        content: Text('Vers quel point voulez-vous aller ?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _getRoute(_pointA!, _pointAName ?? 'Point A');
-            },
-            child: Text('Point A'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _getRoute(_pointB!, _pointBName ?? 'Point B');
-            },
-            child: Text('Point B'),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isNavigating ? 'Navigation en cours...' : 'Navigation 2 Points'),
-        backgroundColor: _isNavigating ? Colors.green : Colors.blue,
+        title: Text(_isNavigating ? 'Navigation en cours...' : 'Mes Destinations'),
+        backgroundColor: _isNavigating ? Color(0xFF88A96F) : Color(0xFF6B5B95),
         foregroundColor: Colors.white,
         actions: [
           if (_isNavigating)
@@ -616,11 +747,15 @@ class _MapPageState extends State<MapPage> {
               icon: Icon(Icons.stop),
               onPressed: _stopNavigation,
             ),
+          if (_destinations.isNotEmpty)
+            IconButton(
+              icon: Icon(Icons.clear_all),
+              onPressed: _clearAllDestinations,
+            ),
         ],
       ),
       body: Stack(
         children: [
-          // Carte
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
@@ -639,7 +774,6 @@ class _MapPageState extends State<MapPage> {
             ],
           ),
 
-          // Barre de recherche
           Positioned(
             top: 16,
             left: 16,
@@ -651,10 +785,8 @@ class _MapPageState extends State<MapPage> {
                   TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: (_isSelectingPointA || _isSelectingPointB) 
-                          ? 'Rechercher pour ${_isSelectingPointA ? "Point A" : "Point B"}...'
-                          : 'Rechercher un lieu...',
-                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Rechercher un lieu...',
+                      prefixIcon: Icon(Icons.search, color: Color(0xFF6B5B95)),
                       suffixIcon: _isSearching
                           ? SizedBox(
                               width: 20,
@@ -679,19 +811,21 @@ class _MapPageState extends State<MapPage> {
                   
                   if (_searchResults.isNotEmpty)
                     Container(
-                      constraints: BoxConstraints(maxHeight: 200),
+                      constraints: BoxConstraints(maxHeight: 150),
                       child: ListView.builder(
                         shrinkWrap: true,
                         itemCount: _searchResults.length,
                         itemBuilder: (context, index) {
                           final result = _searchResults[index];
                           return ListTile(
+                            dense: true,
                             title: Text(
                               result['display_name'],
-                              maxLines: 2,
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12),
                             ),
-                            leading: Icon(Icons.location_on),
+                            leading: Icon(Icons.location_on, size: 20),
                             onTap: () => _goToSearchedLocation(
                               result['lat'],
                               result['lon'],
@@ -706,126 +840,143 @@ class _MapPageState extends State<MapPage> {
             ),
           ),
 
-          // Panel de contrôle des points
-          Positioned(
-            bottom: 16,
-            left: 16,
-            right: 100,
-            child: Card(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Points de navigation',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                    SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _setPointA,
-                            icon: Icon(Icons.location_pin),
-                            label: Text(_pointA == null ? 'Définir A' : 'Point A'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _pointA == null ? Colors.grey : Colors.green,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _setPointB,
-                            icon: Icon(Icons.location_pin),
-                            label: Text(_pointB == null ? 'Définir B' : 'Point B'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _pointB == null ? Colors.grey : Colors.red,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_pointA != null && _pointB != null) ...[
+          if (_destinations.isNotEmpty && !_isNavigating)
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 80,
+              child: Card(
+                child: Container(
+                  constraints: BoxConstraints(maxHeight: 150),
+                  padding: EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Destinations (${_destinations.length})',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
                       SizedBox(height: 8),
-                      ElevatedButton.icon(
-                        onPressed: _calculateRouteAB,
-                        icon: Icon(Icons.directions),
-                        label: Text('Naviguer entre A et B'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
+                      Flexible(
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: _destinations.length,
+                          itemBuilder: (context, index) {
+                            final destination = _destinations[index];
+                            final isActive = _activeDestination != null &&
+                                            _activeDestination!['id'] == destination['id'];
+                            
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 4),
+                              decoration: BoxDecoration(
+                                color: isActive ? destination['color'].withOpacity(0.1) : null,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                leading: Container(
+                                  width: 12,
+                                  height: 12,
+                                  decoration: BoxDecoration(
+                                    color: destination['color'],
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                title: Text(
+                                  destination['name'],
+                                  style: TextStyle(fontSize: 12),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isActive)
+                                      Icon(Icons.navigation, size: 16, color: destination['color']),
+                                    SizedBox(width: 4),
+                                    InkWell(
+                                      onTap: () => _navigateToDestination(destination),
+                                      child: Icon(Icons.play_arrow, size: 16, color: Color(0xFF6B5B95)),
+                                    ),
+                                  ],
+                                ),
+                                onTap: () => _showDestinationOptions(destination),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
 
-          // Boutons d'action
           Positioned(
             bottom: 16,
             right: 16,
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 if (_isNavigating)
-                  FloatingActionButton(
-                    heroTag: "stop_nav",
-                    onPressed: _stopNavigation,
-                    child: Icon(Icons.stop),
-                    backgroundColor: Colors.red,
+                  SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: FloatingActionButton(
+                      heroTag: "stop_nav",
+                      onPressed: _stopNavigation,
+                      child: Icon(Icons.stop, size: 20),
+                      backgroundColor: Color(0xFFB5838C),
+                      mini: true,
+                    ),
                   ),
                 SizedBox(height: 8),
-                FloatingActionButton(
-                  heroTag: "location",
-                  onPressed: _getCurrentLocation,
-                  child: Icon(Icons.my_location),
-                  backgroundColor: Colors.blue,
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: FloatingActionButton(
+                    heroTag: "add_destination",
+                    onPressed: _startDestinationSelection,
+                    child: Icon(Icons.add_location, size: 20),
+                    backgroundColor: Color(0xFF88A96F),
+                    mini: true,
+                  ),
                 ),
                 SizedBox(height: 8),
-                FloatingActionButton(
-                  heroTag: "clear",
-                  onPressed: () {
-                    setState(() {
-                      _pointA = null;
-                      _pointB = null;
-                      _pointAName = null;
-                      _pointBName = null;
-                      _routeLines.clear();
-                      _selectedDestination = null;
-                    });
-                    _updateMarkers();
-                    _stopNavigation();
-                  },
-                  child: Icon(Icons.clear_all),
-                  backgroundColor: Colors.orange,
+                SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: FloatingActionButton(
+                    heroTag: "location",
+                    onPressed: _getCurrentLocation,
+                    child: Icon(Icons.my_location, size: 20),
+                    backgroundColor: Color(0xFF6B5B95),
+                    mini: true,
+                  ),
                 ),
               ],
             ),
           ),
-
-          // Indicateur de sélection
-          if (_isSelectingPointA || _isSelectingPointB)
+          if (_isSelectingDestination)
             Positioned(
-              top: 100,
-              left: 16,
+              bottom: 100,
               right: 16,
               child: Card(
-                color: _isSelectingPointA ? Colors.green : Colors.red,
+                color: Color(0xFF8B5A3C),
                 child: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text(
-                    _isSelectingPointA 
-                        ? '📍 Tapez sur la carte pour définir le Point A'
-                        : '📍 Tapez sur la carte pour définir le Point B',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+                  padding: EdgeInsets.all(8),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.touch_app, color: Colors.white, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'Sélection en cours',
+                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -837,8 +988,10 @@ class _MapPageState extends State<MapPage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _saveDestinations();
     _positionStream?.cancel();
+    _mapController.dispose();
+    _searchController.dispose();
     super.dispose();
-  }
+}
 }

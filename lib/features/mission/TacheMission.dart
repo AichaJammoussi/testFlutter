@@ -4671,7 +4671,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
         _buildDetailCard(
           icon: Icons.attach_money,
           title: 'Budget',
-          content: '${tache.budget.toStringAsFixed(2)} Dt',
+          content: '${tache.budget.toStringAsFixed(3)} Dt',
         ),
         if (tache.depenses != null) ...[
           const SizedBox(height: 12),
@@ -4682,7 +4682,7 @@ class _TachesParMissionScreenState extends State<TachesParMissionScreen> {
                 child: _buildDetailCard(
                   icon: Icons.mobile_friendly_rounded,
                   title: 'Dépenses',
-                  content: '${tache.depenses?.toStringAsFixed(2)} Dt',
+                  content: '${tache.depenses?.toStringAsFixed(3)} Dt',
                 ),
               ),
               const SizedBox(width: 8),

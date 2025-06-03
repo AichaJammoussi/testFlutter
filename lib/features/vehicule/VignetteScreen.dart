@@ -26,15 +26,17 @@ class _VignetteScreenState extends State<VignetteScreen> {
 
   Future<void> _loadVignettes() async {
     if (!mounted) return;
-    
+
     setState(() {
       isLoading = true;
       errorMessage = null;
     });
 
     try {
-      await Provider.of<VignetteProvider>(context, listen: false)
-          .fetchVignettesByVehiculeId(widget.vehiculeId);
+      await Provider.of<VignetteProvider>(
+        context,
+        listen: false,
+      ).fetchVignettesByVehiculeId(widget.vehiculeId);
     } catch (e) {
       setState(() {
         errorMessage = 'Erreur lors du chargement: ${e.toString()}';
@@ -57,35 +59,33 @@ class _VignetteScreenState extends State<VignetteScreen> {
     );
   }
 
-  String _formatDate(DateTime? date) => date != null ? DateFormat('dd/MM/yyyy').format(date) : '';
+  String _formatDate(DateTime? date) =>
+      date != null ? DateFormat('dd/MM/yyyy').format(date) : '';
 
-  // 1. Nouvelle méthode pour calculer le statut de paiement
   String _getPaiementStatus(VignetteDto v) {
     final now = DateTime.now();
-    
+
     if (v.Annee < now.year) return 'Expiré';
     if (v.Annee > now.year) return 'Futur';
-    
+
     if (v.isValid && v.DatePaiement != null) {
-      return v.DatePaiement!.isAfter(v.DateLimitePaiement!) 
-        ? 'Payé (en retard)' 
-        : 'Payé (à temps)';
+      return v.DatePaiement!.isAfter(v.DateLimitePaiement!)
+          ? 'Payé (en retard)'
+          : 'Payé (à temps)';
     }
-    
-    return now.isAfter(v.DateLimitePaiement!) 
-      ? 'Non payé (en retard)' 
-      : 'À payer avant ${_formatDate(v.DateLimitePaiement!)}';
+
+    return now.isAfter(v.DateLimitePaiement!)
+        ? 'Non payé (en retard)'
+        : 'À payer avant ${_formatDate(v.DateLimitePaiement!)}';
   }
 
-  // 2. Nouvelle méthode pour calculer le montant final
   double _calculateFinalAmount(VignetteDto v) {
     if (v.DatePaiement == null) return v.Montant;
     return v.DatePaiement!.isAfter(v.DateLimitePaiement!)
-      ? v.Montant * 1.10
-      : v.Montant;
+        ? v.Montant * 1.10
+        : v.Montant;
   }
 
-  // 3. Nouvelle méthode pour générer la vignette future
   VignetteDto _generateFutureVignette() {
     final nextYear = DateTime.now().year + 1;
     return VignetteDto(
@@ -108,9 +108,7 @@ class _VignetteScreenState extends State<VignetteScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -127,39 +125,47 @@ class _VignetteScreenState extends State<VignetteScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    color: isLate 
-                      ? Colors.red.withOpacity(0.2)
-                      : isFuture
-                        ? Colors.blue.withOpacity(0.2)
-                        : Colors.green.withOpacity(0.2),
+                    color:
+                        isLate
+                            ? Colors.red.withOpacity(0.2)
+                            : isFuture
+                            ? Colors.blue.withOpacity(0.2)
+                            : Colors.green.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isLate ? Icons.warning 
-                          : isFuture ? Icons.timer 
-                          : Icons.check_circle,
+                        isLate
+                            ? Icons.warning
+                            : isFuture
+                            ? Icons.timer
+                            : Icons.check_circle,
                         size: 16,
-                        color: isLate 
-                          ? Colors.red
-                          : isFuture
-                            ? Colors.blue
-                            : Colors.green,
+                        color:
+                            isLate
+                                ? Colors.red
+                                : isFuture
+                                ? Colors.blue
+                                : Colors.green,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         status,
                         style: TextStyle(
                           fontSize: 12,
-                          color: isLate 
-                            ? Colors.red
-                            : isFuture
-                              ? Colors.blue
-                              : Colors.green,
+                          color:
+                              isLate
+                                  ? Colors.red
+                                  : isFuture
+                                  ? Colors.blue
+                                  : Colors.green,
                         ),
                       ),
                     ],
@@ -169,10 +175,19 @@ class _VignetteScreenState extends State<VignetteScreen> {
             ),
             const SizedBox(height: 12),
             if (vignette.DatePaiement != null)
-              _buildInfoRow('Date paiement', _formatDate(vignette.DatePaiement)),
-            _buildInfoRow('Date limite', _formatDate(vignette.DateLimitePaiement!)),
-            _buildInfoRow('Montant', '${vignette.Montant.toStringAsFixed(2)} Dt'),
-            _buildInfoRow('Montant final', '${amount.toStringAsFixed(2)} Dt'),
+              _buildInfoRow(
+                'Date paiement',
+                _formatDate(vignette.DatePaiement),
+              ),
+            _buildInfoRow(
+              'Date limite',
+              _formatDate(vignette.DateLimitePaiement!),
+            ),
+            _buildInfoRow(
+              'Montant',
+              '${vignette.Montant.toStringAsFixed(3)} Dt',
+            ),
+            _buildInfoRow('Montant final', '${amount.toStringAsFixed(3)} Dt'),
             if (isLate)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -259,32 +274,84 @@ class _VignetteScreenState extends State<VignetteScreen> {
       body: Consumer<VignetteProvider>(
         builder: (context, provider, _) {
           final vignettes = [...provider.vignettes];
-          final hasFutureVignette = vignettes.any((v) => v.Annee > DateTime.now().year);
-          
+          final hasFutureVignette = vignettes.any(
+            (v) => v.Annee > DateTime.now().year,
+          );
+
           if (!hasFutureVignette) {
             vignettes.add(_generateFutureVignette());
           }
 
-          return vignettes.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadVignettes,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: vignettes.length,
-                    itemBuilder: (ctx, i) => _buildVignetteCard(vignettes[i]),
-                  ),
-                );
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          labelText: 'Rechercher une vignette',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey.shade100,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      icon: const Icon(
+                        Icons.add,
+                        size: 22,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        "Ajouter",
+                        style: TextStyle(fontSize: 16, color: Colors.white),
+                      ),
+                      onPressed: () => _showAddVignetteDialog(context),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        backgroundColor: const Color(0xFF2A5298),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child:
+                    vignettes.isEmpty
+                        ? _buildEmptyState()
+                        : RefreshIndicator(
+                          onRefresh: _loadVignettes,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: vignettes.length,
+                            itemBuilder:
+                                (ctx, i) => _buildVignetteCard(vignettes[i]),
+                          ),
+                        ),
+              ),
+            ],
+          );
         },
       ),
-     
     );
   }
 
   Widget _buildEmptyState() {
     final nextYear = DateTime.now().year + 1;
     final dateLimite = DateTime(nextYear, 3, 31);
-    
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -329,10 +396,7 @@ class _VignetteScreenState extends State<VignetteScreen> {
           ),
           const Text(': '),
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(color: Colors.black87),
-            ),
+            child: Text(value, style: const TextStyle(color: Colors.black87)),
           ),
         ],
       ),
@@ -396,23 +460,33 @@ class _VignetteScreenState extends State<VignetteScreen> {
                           }
                         },
                         child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'Date de paiement'),
-                          child: Text(_selectedDate != null 
-                            ? _formatDate(_selectedDate!) 
-                            : 'Sélectionner une date'),
+                          decoration: const InputDecoration(
+                            labelText: 'Date de paiement',
+                          ),
+                          child: Text(
+                            _selectedDate != null
+                                ? _formatDate(_selectedDate!)
+                                : 'Sélectionner une date',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _montantController,
-                        decoration: const InputDecoration(labelText: 'Montant (DH)'),
-                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Montant (Dt)',
+                        ),
+                        keyboardType: TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         onChanged: (_) => setState(() {}),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Champs requis';
                           }
-                          final amount = double.tryParse(value.replaceAll(',', '.'));
+                          final amount = double.tryParse(
+                            value.replaceAll(',', '.'),
+                          );
                           if (amount == null || amount <= 0) {
                             return 'Montant invalide';
                           }
@@ -421,12 +495,19 @@ class _VignetteScreenState extends State<VignetteScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Montant final: ${_calculateAmount().toStringAsFixed(2)} DH',
+                        'Montant final: ${_calculateAmount().toStringAsFixed(3)} Dt',
                         style: TextStyle(
-                          color: _selectedDate != null && 
-                                 _selectedDate!.isAfter(DateTime(int.parse(_anneeController.text), 3, 31))
-                            ? Colors.red
-                            : Colors.green,
+                          color:
+                              _selectedDate != null &&
+                                      _selectedDate!.isAfter(
+                                        DateTime(
+                                          int.parse(_anneeController.text),
+                                          3,
+                                          31,
+                                        ),
+                                      )
+                                  ? Colors.red
+                                  : Colors.green,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -441,23 +522,29 @@ class _VignetteScreenState extends State<VignetteScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    if (_formKey.currentState!.validate() && _selectedDate != null) {
+                    if (_formKey.currentState!.validate() &&
+                        _selectedDate != null) {
                       final newVignette = VignetteCreationDto(
                         VehiculeId: widget.vehiculeId,
                         Annee: int.parse(_anneeController.text),
-                        Montant: double.parse(_montantController.text.replaceAll(',', '.')),
+                        Montant: double.parse(
+                          _montantController.text.replaceAll(',', '.'),
+                        ),
                         DatePaiement: _selectedDate!,
                       );
-                      
-                      Provider.of<VignetteProvider>(context, listen: false)
-                        .createVignette(newVignette)
-                        .then((_) {
-                          Navigator.pop(context);
-                          _loadVignettes();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Vignette ajoutée avec succès')),
-                          );
-                        });
+
+                      Provider.of<VignetteProvider>(
+                        context,
+                        listen: false,
+                      ).createVignette(newVignette).then((_) {
+                        Navigator.pop(context);
+                        _loadVignettes();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Vignette ajoutée avec succès'),
+                          ),
+                        );
+                      });
                     }
                   },
                   child: const Text('Enregistrer'),
@@ -472,16 +559,20 @@ class _VignetteScreenState extends State<VignetteScreen> {
 
   void _showEditVignetteDialog(BuildContext context, VignetteDto vignette) {
     final _formKey = GlobalKey<FormState>();
-    final _montantController = TextEditingController(text: vignette.Montant.toString());
-    final _anneeController = TextEditingController(text: vignette.Annee.toString());
+    final _montantController = TextEditingController(
+      text: vignette.Montant.toString(),
+    );
+    final _anneeController = TextEditingController(
+      text: vignette.Annee.toString(),
+    );
     DateTime? _selectedDate = vignette.DatePaiement;
 
     double _calculateAmount() {
       if (_selectedDate == null || _montantController.text.isEmpty) return 0;
       final montant = double.tryParse(_montantController.text) ?? 0;
-      return _selectedDate!.isAfter(vignette.DateLimitePaiement!) 
-        ? montant * 1.10 
-        : montant;
+      return _selectedDate!.isAfter(vignette.DateLimitePaiement!)
+          ? montant * 1.10
+          : montant;
     }
 
     showDialog(
@@ -526,23 +617,33 @@ class _VignetteScreenState extends State<VignetteScreen> {
                           }
                         },
                         child: InputDecorator(
-                          decoration: const InputDecoration(labelText: 'Date de paiement'),
-                          child: Text(_selectedDate != null 
-                            ? _formatDate(_selectedDate!) 
-                            : 'Sélectionner une date'),
+                          decoration: const InputDecoration(
+                            labelText: 'Date de paiement',
+                          ),
+                          child: Text(
+                            _selectedDate != null
+                                ? _formatDate(_selectedDate!)
+                                : 'Sélectionner une date',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _montantController,
-                        decoration: const InputDecoration(labelText: 'Montant (DH)'),
-                        keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Montant (DH)',
+                        ),
+                        keyboardType: TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         onChanged: (_) => setState(() {}),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Champs requis';
                           }
-                          final amount = double.tryParse(value.replaceAll(',', '.'));
+                          final amount = double.tryParse(
+                            value.replaceAll(',', '.'),
+                          );
                           if (amount == null || amount <= 0) {
                             return 'Montant invalide';
                           }
@@ -551,12 +652,15 @@ class _VignetteScreenState extends State<VignetteScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Montant final: ${_calculateAmount().toStringAsFixed(2)} DH',
+                        'Montant final: ${_calculateAmount().toStringAsFixed(3)} Dt',
                         style: TextStyle(
-                          color: _selectedDate != null && 
-                                 _selectedDate!.isAfter(vignette.DateLimitePaiement!)
-                            ? Colors.red
-                            : Colors.green,
+                          color:
+                              _selectedDate != null &&
+                                      _selectedDate!.isAfter(
+                                        vignette.DateLimitePaiement!,
+                                      )
+                                  ? Colors.red
+                                  : Colors.green,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -572,10 +676,11 @@ class _VignetteScreenState extends State<VignetteScreen> {
                 ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
-                      // Implémentez la méthode update dans votre provider
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Fonctionnalité à implémenter')),
+                        const SnackBar(
+                          content: Text('Fonctionnalité à implémenter'),
+                        ),
                       );
                     }
                   },
@@ -592,45 +697,46 @@ class _VignetteScreenState extends State<VignetteScreen> {
   void _confirmDeleteVignette(BuildContext context, VignetteDto vignette) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmer la suppression'),
-        content: Text(
-          'Voulez-vous vraiment supprimer la vignette pour l\'année ${vignette.Annee} ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Confirmer la suppression'),
+            content: Text(
+              'Voulez-vous vraiment supprimer la vignette pour l\'année ${vignette.Annee} ?',
             ),
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await Provider.of<VignetteProvider>(context, listen: false)
-                    .deleteVignette(vignette.VignetteId);
-                _loadVignettes();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Vignette supprimée avec succès'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Erreur: ${e.toString()}'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
-            child: const Text('Supprimer'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Annuler'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () async {
+                  Navigator.pop(context);
+                  try {
+                    await Provider.of<VignetteProvider>(
+                      context,
+                      listen: false,
+                    ).deleteVignette(vignette.VignetteId);
+                    _loadVignettes();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Vignette supprimée avec succès'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Erreur: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                child: const Text('Supprimer'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

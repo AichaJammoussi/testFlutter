@@ -5,6 +5,7 @@ import 'package:testfront/core/config/api_config.dart';
 import 'package:testfront/core/models/profile_model.dart';
 import 'package:testfront/core/models/response.dart';
 import 'package:testfront/core/services/profile_service.dart';
+import 'package:testfront/features/profile/edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -26,14 +27,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text("Mon Profil", style: GoogleFonts.poppins()),
-        centerTitle: true,
-      ),
       body: FutureBuilder<ResponseDTO<UserProfileDTO>>(
         future: _profileFuture,
         builder: (context, snapshot) {
@@ -56,57 +52,116 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           return Stack(
             children: [
-              // Background gradient
+              // Fond dégradé pastel foncé
               Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: isDark
-                        ? [Colors.black87, Colors.grey[900]!]
-                        : [Colors.blue[50]!, Colors.white],
+                        ? [Color(0xFF1E293B), Color(0xFF334155)]
+                        : [Color(0xFFcbd5e1), Color(0xFFe2e8f0)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
                 ),
               ),
+              // AppBar transparente avec bouton edit
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 48), // pour équilibrer
+                    Text(
+                      "Mon Profil",
+                      style: GoogleFonts.poppins(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 20,
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      color: isDark ? Colors.white70 : Colors.blueGrey[700],
+                      onPressed: () async {
+                        final updated = await Navigator.push<bool>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditProfileScreen(
+                              userProfile: profile,
+                            ),
+                          ),
+                        );
+                        if (updated == true) {
+                          setState(() {
+                            _profileFuture = _profileService.getUserProfile();
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              // Carte profil
               Center(
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(30),
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                    filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                     child: Container(
-                      width: 400,
-                      padding: const EdgeInsets.all(24),
+                      width: 380,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 32,
+                        horizontal: 28,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: isDark
+                            ? Colors.white.withOpacity(0.12)
+                            : Colors.white.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: Colors.white.withOpacity(0.2)),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.2)
+                              : Colors.blueGrey.withOpacity(0.3),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: isDark
+                                ? Colors.black.withOpacity(0.4)
+                                : Colors.grey.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           CircleAvatar(
-                            radius: 60,
+                            radius: 65,
                             backgroundImage: imageUrl != null
                                 ? NetworkImage(imageUrl)
                                 : const AssetImage('lib/core/images/user.png')
                                     as ImageProvider,
-                            backgroundColor: Colors.grey[200],
+                            backgroundColor: isDark ? Colors.grey[800] : Colors.grey[200],
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 25),
                           Text(
                             '${profile.nom} ${profile.prenom}',
                             style: GoogleFonts.poppins(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : Colors.black87,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.blueGrey[900],
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           SelectableText(
                             profile.email,
                             style: GoogleFonts.poppins(
                               fontSize: 16,
-                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white70 : Colors.blueGrey[700],
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -114,23 +169,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             profile.phoneNumber ?? "Téléphone non renseigné",
                             style: GoogleFonts.poppins(
                               fontSize: 16,
-                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white70 : Colors.blueGrey[700],
                             ),
                           ),
                           const SizedBox(height: 30),
-                          ElevatedButton.icon(
-                            onPressed: () {},
-                            icon: const Icon(Icons.logout),
-                            label: const Text("Déconnexion"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blueAccent,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                          )
                         ],
                       ),
                     ),

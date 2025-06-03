@@ -310,7 +310,7 @@ await remboursementProvider.creerOuMettreAJourDemande(missionId);
           String typeLabel = dep.typeDepense.toString().split('.').last;
           String moyenLabel = dep.moyenPaiement.toString().split('.').last;
           String montantFormatted = dep.montant
-              .toStringAsFixed(2)
+              .toStringAsFixed(3)
               .replaceAll('.', ',');
 
           return Card(
@@ -396,7 +396,7 @@ await remboursementProvider.creerOuMettreAJourDemande(missionId);
     String typeLabel = depense.typeDepense.toString().split('.').last;
     String moyenLabel = depense.moyenPaiement.toString().split('.').last;
     String montantFormatted = depense.montant
-        .toStringAsFixed(2)
+        .toStringAsFixed(3)
         .replaceAll('.', ',');
 
     showDialog(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
@@ -169,6 +170,140 @@ class ProfileService {
       return false;
     }
   }
+  Future<ResponseDTO<String>> updateProfilePhoto({
+  required String userId,
+  File? imageFile,
+  Uint8List? imageBytes,
+  String? fileName,
+}) async {
+  try {
+    // Vérification des paramètres d'entrée
+    if ((kIsWeb && imageBytes == null) || (!kIsWeb && imageFile == null)) {
+      return ResponseDTO<String>(
+        success: false,
+        message: 'Aucune image fournie',
+        data: null,
+      );
+    }
+    
+    // Construction de l'URL
+    final uri = Uri.parse('$_baseUrl/api/Profile/profile-picture');
+    final request = http.MultipartRequest('POST', uri);
+    
+    // Configuration des headers
+    final headers = await _getHeaders();
+    request.headers.addAll({
+      'Authorization': headers['Authorization']!,
+      'accept': '/',
+      if (kDebugMode) 'ngrok-skip-browser-warning': 'true',
+    });
+    
+    // Ajout du fichier image selon la plateforme
+    if (kIsWeb) {
+      final mimeType = fileName != null 
+          ? lookupMimeType(fileName) ?? 'image/jpeg'
+          : 'image/jpeg';
+          
+      request.files.add(http.MultipartFile.fromBytes(
+        'file',
+        imageBytes!,
+        filename: fileName ?? 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+        contentType: MediaType.parse(mimeType),
+      )); // Parenthèse fermante ajoutée ici
+    } else {
+      final fileExtension = imageFile!.path.split('.').last.toLowerCase();
+      final mimeType = 'image/$fileExtension';
+      
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        imageFile.path,
+        contentType: MediaType.parse(mimeType),
+      )); // Parenthèse fermante ajoutée ici
+    }
+    
+    // Envoi de la requête et traitement de la réponse
+    final response = await http.Response.fromStream(await request.send());
+    
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      try {
+        final responseData = json.decode(response.body);
+        return ResponseDTO<String>(
+          success: true,
+          message: responseData['message'] ?? 'Photo mise à jour avec succès',
+          data: responseData['photoUrl']?.toString(),
+        );
+      } catch (e) {
+        return ResponseDTO<String>(
+          success: true,
+          message: 'Photo mise à jour mais réponse inattendue',
+          data: response.body,
+        );
+      }
+    } else {
+      return _handleErrorResponse(response);
+    }
+  } on SocketException {
+    return ResponseDTO<String>(
+      success: false,
+      message: 'Erreur de connexion réseau',
+      data: null,
+    );
+  } on TimeoutException {
+    return ResponseDTO<String>(
+      success: false,
+      message: 'Temps d\'attente dépassé',
+      data: null,
+    );
+  } catch (e) {
+    return ResponseDTO<String>(
+      success: false,
+      message: 'Erreur inattendue: ${e.toString()}',
+      data: null,
+    );
+  }
+}
+
+ResponseDTO<String> _handleErrorResponse(http.Response response) {
+  String errorMessage;
+  
+  switch (response.statusCode) {
+    case 400:
+      errorMessage = 'Requête incorrecte';
+      break;
+    case 401:
+      errorMessage = 'Non autorisé';
+      break;
+    case 403:
+      errorMessage = 'Accès refusé';
+      break;
+    case 404:
+      errorMessage = 'Endpoint non trouvé';
+      break;
+    case 413:
+      errorMessage = 'Fichier trop volumineux';
+      break;
+    case 415:
+      errorMessage = 'Type de fichier non supporté';
+      break;
+    case 500:
+      errorMessage = 'Erreur serveur interne';
+      break;
+    default:
+      errorMessage = 'Erreur HTTP ${response.statusCode}';
+  }
+  
+  try {
+    final errorData = json.decode(response.body);
+    errorMessage = errorData['message'] ?? errorData['title'] ?? errorMessage;
+  } catch (_) {}
+  
+  return ResponseDTO<String>(
+    success: false,
+    message: errorMessage,
+    data:null,
+);
+}
+
 
   /*
   // 5. Mot de passe oublié

@@ -39,7 +39,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   onPressed: () => provider.markAllAsRead(),
                   child: Text(
                     'Tout lire',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: const Color.fromARGB(255, 173, 166, 166), fontWeight: FontWeight.w600),
                   ),
                 );
               }

@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+
   dio: ^5.0.0          # Pour les appels API
   provider: ^6.0.0     # Gestion d'état
   flutter_secure_storage: ^9.2.4 # Stockage sécurisé
@@ -66,11 +68,11 @@ dependencies:
   latlong2: ^0.9.0
   badges: ^3.1.2
   geolocator: ^10.1.0
-
-  # The following adds the Cupertino Icons font to your application.
+  flutter_charts: ^0.5.2
+  fl_chart: ^1.0.0  # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-
+  percent_indicator: ^4.2.2
   
 dev_dependencies:
   flutter_test:
@@ -90,6 +92,7 @@ dev_dependencies:
 flutter:
   assets:
   - lib/core/images/
+
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

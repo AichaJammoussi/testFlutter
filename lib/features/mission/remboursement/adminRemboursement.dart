@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:testfront/core/models/StatutRemboursement.dart';
+import 'package:testfront/core/providers/UserProvider.dart';
 import 'package:testfront/core/providers/mission_provider.dart';
 import 'package:testfront/core/providers/remboursement_provider.dart';
 
@@ -22,7 +23,9 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
@@ -36,7 +39,6 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
     );
 
     await remboursementProvider.loadTousLesRemboursements();
-    await missionProvider.loadMissions();
   }
 
   Color _getStatusColor(StatutRemboursement statut) {
@@ -67,75 +69,73 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
     int id,
     StatutRemboursement nouveauStatut,
   ) async {
-    final message =
-        nouveauStatut == StatutRemboursement.REJETE
-            ? 'Voulez-vous vraiment rejeter le remboursement ?'
-            : 'Voulez-vous vraiment approuver le remboursement ?';
+    final message = nouveauStatut == StatutRemboursement.REJETE
+        ? 'Voulez-vous vraiment rejeter le remboursement ?'
+        : 'Voulez-vous vraiment approuver le remboursement ?';
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Text(
-              'Confirmer le changement',
-              style: TextStyle(
-                color: Colors.blueGrey.shade800,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            content: Text(
-              message,
-              style: TextStyle(color: Colors.blueGrey.shade700),
-              textAlign: TextAlign.center,
-            ),
-            actionsAlignment: MainAxisAlignment.spaceEvenly,
-            actionsPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 10,
-            ),
-            actions: [
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 187, 204, 234),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  elevation: 0,
-                ),
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text(
-                  'Annuler',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2A5298),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  elevation: 0,
-                ),
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text(
-                  'Confirmer',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'Confirmer le changement',
+          style: TextStyle(
+            color: Colors.blueGrey.shade800,
+            fontWeight: FontWeight.bold,
           ),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          message,
+          style: TextStyle(color: Colors.blueGrey.shade700),
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actionsPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 10,
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color.fromARGB(255, 187, 204, 234),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 12,
+              ),
+              elevation: 0,
+            ),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF2A5298),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 12,
+              ),
+              elevation: 0,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text(
+              'Confirmer',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
     );
 
     if (confirm == true) {
@@ -148,15 +148,19 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
 
     try {
       await provider.changerStatut(id, nouveauStatut);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Demande remboursement mise à jour avec succès'),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Demande remboursement mise à jour avec succès'),
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Erreur : ${e.toString()}')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur : ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -186,11 +190,14 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  onChanged:
-                      (value) => setState(() {
+                  onChanged: (value) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      setState(() {
                         _searchQuery = value;
                         _currentPage = 1;
-                      }),
+                      });
+                    });
+                  },
                 ),
               ),
               const SizedBox(width: 8),
@@ -208,11 +215,14 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
                       'Statut',
                       style: TextStyle(color: Colors.blueGrey.shade600),
                     ),
-                    onChanged:
-                        (value) => setState(() {
+                    onChanged: (value) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        setState(() {
                           _selectedStatut = value;
                           _currentPage = 1;
-                        }),
+                        });
+                      });
+                    },
                     items: [
                       const DropdownMenuItem(value: null, child: Text('Tous')),
                       ...StatutRemboursement.values.map(
@@ -238,13 +248,17 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
           IconButton(
             icon: Icon(
               Icons.chevron_left,
-              color:
-                  _currentPage > 1
-                      ? Colors.blueGrey.shade400
-                      : Colors.blueGrey.shade200,
+              color: _currentPage > 1
+                  ? Colors.blueGrey.shade400
+                  : Colors.blueGrey.shade200,
             ),
-            onPressed:
-                _currentPage > 1 ? () => setState(() => _currentPage--) : null,
+            onPressed: _currentPage > 1
+                ? () {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      setState(() => _currentPage--);
+                    });
+                  }
+                : null,
             tooltip: 'Page précédente',
           ),
           const SizedBox(width: 8),
@@ -259,15 +273,17 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
           IconButton(
             icon: Icon(
               Icons.chevron_right,
-              color:
-                  _currentPage < totalPages
-                      ? Colors.blueGrey.shade400
-                      : Colors.blueGrey.shade200,
+              color: _currentPage < totalPages
+                  ? Colors.blueGrey.shade400
+                  : Colors.blueGrey.shade200,
             ),
-            onPressed:
-                _currentPage < totalPages
-                    ? () => setState(() => _currentPage++)
-                    : null,
+            onPressed: _currentPage < totalPages
+                ? () {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      setState(() => _currentPage++);
+                    });
+                  }
+                : null,
             tooltip: 'Page suivante',
           ),
         ],
@@ -282,19 +298,12 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
 
     final filteredRemboursements =
         remboursementProvider.remboursements.where((r) {
-          final missionTitre =
-              missionProvider
-                  .getMissionById(r.missionId)
-                  ?.titre
-                  ?.toLowerCase() ??
-              '';
-          final matchesStatut =
-              _selectedStatut == null || r.statut == _selectedStatut;
-          final matchesSearch = missionTitre.contains(
-            _searchQuery.toLowerCase(),
-          );
-          return matchesStatut && matchesSearch;
-        }).toList();
+      final missionTitre =
+          missionProvider.getMissionById(r.missionId)?.titre?.toLowerCase() ?? '';
+      final matchesStatut = _selectedStatut == null || r.statut == _selectedStatut;
+      final matchesSearch = missionTitre.contains(_searchQuery.toLowerCase());
+      return matchesStatut && matchesSearch;
+    }).toList();
 
     final total = filteredRemboursements.length;
     final totalPages = (total / _itemsPerPage).ceil();
@@ -303,7 +312,7 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
     final paginated = filteredRemboursements.sublist(start, end);
 
     return Scaffold(
-        backgroundColor: const Color.fromARGB(255, 243, 243, 243),
+      backgroundColor: const Color.fromARGB(255, 243, 243, 243),
       appBar: AppBar(
         title: const Text("Remboursements - Admin"),
         backgroundColor: const Color.fromARGB(255, 243, 243, 243),
@@ -311,174 +320,196 @@ class _AdminRemboursementsScreenState extends State<AdminRemboursementsScreen> {
       body: RefreshIndicator(
         onRefresh: _loadData,
         child: LayoutBuilder(
-          builder:
-              (context, constraints) => Column(
-                children: [
-                  _buildFilterSection(),
-                  Expanded(
-                    child:
-                        remboursementProvider.isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : paginated.isEmpty
-                            ? Center(
-                              child: Text(
-                                'Aucun remboursement trouvé',
-                                style: TextStyle(
-                                  color: Colors.blueGrey.shade400,
-                                  fontSize: 16,
-                                ),
+          builder: (context, constraints) => Column(
+            children: [
+              _buildFilterSection(),
+              Expanded(
+                child: remboursementProvider.isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : paginated.isEmpty
+                        ? Center(
+                            child: Text(
+                              'Aucun remboursement trouvé',
+                              style: TextStyle(
+                                color: Colors.blueGrey.shade400,
+                                fontSize: 16,
                               ),
-                            )
-                            : ListView.separated(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: paginated.length,
-                              separatorBuilder:
-                                  (_, __) => const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final remb = paginated[index];
-                                final mission = missionProvider.getMissionById(
-                                  remb.missionId,
-                                );
-                                final titre =
-                                    mission?.titre ?? 'Mission inconnue';
-                                final description = mission?.description ?? '';
-
-                                final remboursementOuRendre =
-                                    remb.montant >= 0
-                                        ? '💰 À REMBOURSER à l’employé'
-                                        : '↩️ À REMETTRE à l’entreprise';
-
-                                return Card(
-                                  color: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(15),
-                                  ),
-                                  elevation: 2,
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.all(16),
-                                    leading: CircleAvatar(
-                                      backgroundColor: _getStatusColor(
-                                        remb.statut,
-                                      ).withOpacity(0.3),
-                                      child: Icon(
-                                        _getStatusIcon(remb.statut),
-                                        color: _getStatusColor(remb.statut),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      titre,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: Colors.blueGrey.shade900,
-                                      ),
-                                    ),
-                                    subtitle: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        if (description.isNotEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                              top: 4.0,
-                                            ),
-                                            child: Text(
-                                              description,
-                                              style: TextStyle(
-                                                fontStyle: FontStyle.italic,
-                                                fontSize: 13,
-                                                color: Colors.blueGrey.shade600,
-                                              ),
-                                            ),
-                                          ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Montant : ${remb.montant.abs().toStringAsFixed(2)} DT',
-                                          style: TextStyle(
-                                            color: Colors.blueGrey.shade800,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Demandé le : ${DateFormat('dd/MM/yyyy HH:mm').format(remb.dateDemande)}',
-                                          style: TextStyle(
-                                            color: Colors.blueGrey.shade800,
-                                          ),
-                                        ),
-                                        if (remb.dateValidation != null)
-                                          Text(
-                                            'Validé le : ${DateFormat('dd/MM/yyyy HH:mm').format(remb.dateValidation!)}',
-                                            style: TextStyle(
-                                              color: Colors.blueGrey.shade700,
-                                              fontStyle: FontStyle.italic,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          remboursementOuRendre,
-                                          style: TextStyle(
-                                            color:
-                                                remb.montant >= 0
-                                                    ? Colors.green.shade300
-                                                    : Colors.red.shade300,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Statut actuel : ${remb.statut.name}',
-                                          style: TextStyle(
-                                            color: _getStatusColor(remb.statut),
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    trailing:
-                                        remb.statut ==
-                                                StatutRemboursement.ENATTENTE
-                                            ? Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                IconButton(
-                                                  icon: Icon(
-                                                    Icons.check,
-                                                    color:
-                                                        Colors.green.shade300,
-                                                  ),
-                                                  onPressed:
-                                                      () =>
-                                                          _confirmerChangementStatut(
-                                                            remb.remboursementId,
-                                                            StatutRemboursement
-                                                                .APPROUVE,
-                                                          ),
-                                                  tooltip: 'Approuver',
-                                                ),
-                                                IconButton(
-                                                  icon: Icon(
-                                                    Icons.close,
-                                                    color: Colors.red.shade300,
-                                                  ),
-                                                  onPressed:
-                                                      () =>
-                                                          _confirmerChangementStatut(
-                                                            remb.remboursementId,
-                                                            StatutRemboursement
-                                                                .REJETE,
-                                                          ),
-                                                  tooltip: 'Rejeter',
-                                                ),
-                                              ],
-                                            )
-                                            : null,
-                                  ),
-                                );
-                              },
                             ),
-                  ),
-                  if (totalPages > 1) _buildPaginationControls(totalPages),
-                ],
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: paginated.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 12),
+                            itemBuilder: (context, index) {
+                              final remb = paginated[index];
+                              final mission =
+                                  missionProvider.getMissionById(remb.missionId);
+                              final titre = mission?.titre ?? 'Mission inconnue';
+                              final description = mission?.description ?? '';
+
+                              final remboursementOuRendre = remb.montant >= 0
+                                  ? '💰 À REMBOURSER à l''employé'
+                                  : '↩️ À REMETTRE à l''entreprise';
+
+                              return Card(
+                                color: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                elevation: 2,
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.all(16),
+                                  leading: CircleAvatar(
+                                    backgroundColor:
+                                        _getStatusColor(remb.statut).withOpacity(0.3),
+                                    child: Icon(
+                                      _getStatusIcon(remb.statut),
+                                      color: _getStatusColor(remb.statut),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    titre,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.blueGrey.shade900,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (description.isNotEmpty)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 4.0),
+                                          child: Text(
+                                            description,
+                                            style: TextStyle(
+                                              fontStyle: FontStyle.italic,
+                                              fontSize: 13,
+                                              color: Colors.blueGrey.shade600,
+                                            ),
+                                          ),
+                                        ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Montant : ${remb.montant.abs().toStringAsFixed(3)} DT',
+                                        style: TextStyle(
+                                          color: Colors.blueGrey.shade800,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Demandé le : ${DateFormat('dd/MM/yyyy HH:mm').format(remb.dateDemande)}',
+                                        style: TextStyle(
+                                          color: Colors.blueGrey.shade800,
+                                        ),
+                                      ),
+                                      FutureBuilder(
+                                        future: Provider.of<UserProvider>(context,
+                                                listen: false)
+                                            .fetchUserById(remb.employeId),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.connectionState ==
+                                              ConnectionState.waiting) {
+                                            return const Text(
+                                              'Chargement de l''employé...',
+                                              style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontStyle: FontStyle.italic),
+                                            );
+                                          }
+
+                                          final userProvider =
+                                              Provider.of<UserProvider>(context,
+                                                  listen: false);
+                                          final userDTO = userProvider.userr;
+
+                                          if (userDTO != null) {
+                                            return Text(
+                                              'Par : ${userDTO.prenom} ${userDTO.nom}',
+                                              style: TextStyle(
+                                                color: Colors.blueGrey.shade800,
+                                                fontSize: 13,
+                                              ),
+                                            );
+                                          } else {
+                                            return Text(
+                                              'Employé inconnu',
+                                              style: TextStyle(
+                                                color: Colors.red.shade400,
+                                                fontStyle: FontStyle.italic,
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
+                                      if (remb.dateValidation != null)
+                                        Text(
+                                          'Validé le : ${DateFormat('dd/MM/yyyy HH:mm').format(remb.dateValidation!)}',
+                                          style: TextStyle(
+                                            color: Colors.blueGrey.shade700,
+                                            fontStyle: FontStyle.italic,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        remboursementOuRendre,
+                                        style: TextStyle(
+                                          color: remb.montant >= 0
+                                              ? Colors.green.shade300
+                                              : Colors.red.shade300,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Statut actuel : ${remb.statut.name}',
+                                        style: TextStyle(
+                                          color: _getStatusColor(remb.statut),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: remb.statut ==
+                                          StatutRemboursement.ENATTENTE
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.check,
+                                                color: Colors.green.shade300,
+                                              ),
+                                              onPressed: () =>
+                                                  _confirmerChangementStatut(
+                                                remb.remboursementId,
+                                                StatutRemboursement.APPROUVE,
+                                              ),
+                                              tooltip: 'Approuver',
+                                            ),
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.close,
+                                                color: Colors.red.shade300,
+                                              ),
+                                              onPressed: () =>
+                                                  _confirmerChangementStatut(
+                                                remb.remboursementId,
+                                                StatutRemboursement.REJETE,
+                                              ),
+                                              tooltip: 'Rejeter',
+                                            ),
+                                          ],
+                                        )
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
               ),
+              if (totalPages > 1) _buildPaginationControls(totalPages),
+            ],
+          ),
         ),
       ),
     );

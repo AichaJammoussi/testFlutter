@@ -93,7 +93,7 @@ class _DepenseScreenState extends State<DepensesParTacheScreenAdmin> {
           String typeLabel = dep.typeDepense.toString().split('.').last;
           String moyenLabel = dep.moyenPaiement.toString().split('.').last;
           String montantFormatted = dep.montant
-              .toStringAsFixed(2)
+              .toStringAsFixed(3)
               .replaceAll('.', ',');
 
           return Card(
@@ -128,7 +128,7 @@ class _DepenseScreenState extends State<DepensesParTacheScreenAdmin> {
     String typeLabel = depense.typeDepense.toString().split('.').last;
     String moyenLabel = depense.moyenPaiement.toString().split('.').last;
     String montantFormatted = depense.montant
-        .toStringAsFixed(2)
+        .toStringAsFixed(3)
         .replaceAll('.', ',');
     String getImageUrl(String path) {
       return "${ApiConfig.baseUrl}$path";

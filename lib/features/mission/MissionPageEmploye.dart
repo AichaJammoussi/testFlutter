@@ -38,9 +38,20 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
   @override
   void initState() {
     super.initState();
+    final missionProvider = context.read<MissionProvider>();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final userProvider = context.read<UserProvider>();
       final missionProvider = context.read<MissionProvider>();
+      while (userProvider.user == null) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      context.read<TacheProvider>().fetchAllTaches();
+
+      final userId = userProvider.user!.id;
+      await missionProvider.loadMissionsByUserId(userId);
+      await missionProvider.loadMissionsByUserId(userId);
+
       Future.microtask(
         () => context.read<RemboursementProvider>().loadMesRemboursements(),
       );
@@ -49,8 +60,8 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
       while (userProvider.user == null) {
         await Future.delayed(const Duration(milliseconds: 100));
       }
+      context.read<TacheProvider>().fetchAllTaches();
 
-      final userId = userProvider.user!.id;
       await missionProvider.loadMissionsByUserId(userId);
     });
 
@@ -62,7 +73,7 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
     });
   }
 
-  Future<void> _updateDepenseEtTotal() async {
+  /*Future<void> _updateDepenseEtTotal() async {
     final tacheProvider = Provider.of<TacheProvider>(context, listen: false);
     final missionProvider = Provider.of<MissionProvider>(
       context,
@@ -80,6 +91,46 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
       await tacheProvider.fetchTotalDepensesMission(missionId);
       await tacheProvider.chargerTotalBudget(missionId);
       await remboursementProvider.creerOuMettreAJourDemande(missionId);
+    }
+  }*/
+  Future<void> _updateDepenseEtTotal(int missionId) async {
+    if (!mounted) return;
+
+    final missionProvider = Provider.of<MissionProvider>(
+      context,
+      listen: false,
+    );
+    final rembProvider = Provider.of<RemboursementProvider>(
+      context,
+      listen: false,
+    );
+
+    try {
+      // 1. Vérifier si demande existe déjà
+      final existingRequest = rembProvider.getRemboursementByMission(missionId);
+      final mission = missionProvider.getMissionById(missionId);
+
+      // 2. Mettre à jour les totaux
+      await Provider.of<TacheProvider>(
+        context,
+        listen: false,
+      ).fetchTotalDepensesMission(missionId);
+
+      // 3. Générer seulement si:
+      // - Mission terminée ET
+      // - Pas de demande existante OU montant changé
+      if (mission!.statut == StatutMission.TERMINEE) {
+        if (existingRequest == null ||
+            existingRequest.montant != mission.depenses) {
+          await rembProvider.creerOuMettreAJourDemande(missionId);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Erreur: ${e.toString()}')));
+      }
     }
   }
 
@@ -525,10 +576,10 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
                           if (demandeDejaFaite) {
                             if (demandeExistante!.montant < 0) {
                               labelButton =
-                                  'Demande de retour d\'argent : ${demandeExistante.montant.abs().toStringAsFixed(2)} DT';
+                                  'Demande de retour d\'argent : ${demandeExistante.montant.abs().toStringAsFixed(3)} DT';
                             } else if (demandeExistante.montant > 0) {
                               labelButton =
-                                  'Demande de remboursement : ${demandeExistante.montant.toStringAsFixed(2)} DT';
+                                  'Demande de remboursement : ${demandeExistante.montant.toStringAsFixed(3)} DT';
                             } else {
                               labelButton =
                                   'Montant nul, aucune demande nécessaire';
@@ -575,61 +626,24 @@ class _MissionsScreenState extends State<MissionsScreenEmploye> {
                             icon: const Icon(Icons.request_page),
                             label: Text(labelButton),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF2A5298),
-                              disabledBackgroundColor: Colors.grey,
+                              backgroundColor: const Color.fromARGB(
+                                255,
+                                175,
+                                201,
+                                245,
+                              ),
+                              disabledBackgroundColor: const Color.fromARGB(
+                                255,
+                                255,
+                                205,
+                                205,
+                              ),
                               minimumSize: const Size(double.infinity, 48),
                             ),
                           );
                         },
                       ),
-                      ...[
-                        const SizedBox(height: 20),
-
-ElevatedButton.icon(
-  onPressed: () async {
-    final rapportProvider = context.read<RapportProvider>();
-
-    // Chargement du rapport
-    await rapportProvider.loadRapport(mission.missionId);
-
-    if (!context.mounted) return;
-
-    final rapport = rapportProvider.rapport;
-    if (rapport != null) {
-      // Génération PDF
-      await generateMissionRapportPdf(rapport);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('📄 Rapport PDF généré avec succès'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '❌ Échec de génération : ${rapportProvider.error ?? "rapport non disponible"}',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  },
-  icon: const Icon(Icons.picture_as_pdf),
-  label: const Text("📄 Générer le rapport PDF"),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.indigo,
-    minimumSize: const Size(double.infinity, 48),
-  ),
-),
-
-                        const SizedBox(height: 20),
-
-                
-                         
-                      ],
-
+                    ],
                     _buildDetailRow('📄 Description', mission.description),
                     _buildDetailRow(
                       '📆 Dates prévues',
@@ -644,12 +658,12 @@ ElevatedButton.icon(
 
                     _buildDetailRow(
                       '💰 Budget',
-                      '${mission.budget.toStringAsFixed(2)} Dt',
+                      '${mission.budget.toStringAsFixed(3)} Dt',
                     ),
                     if (mission.depenses != null)
                       _buildDetailRow(
                         '💸 Dépenses',
-                        '${mission.depenses!.toStringAsFixed(2)} Dt',
+                        '${mission.depenses!.toStringAsFixed(3)} Dt',
                       ),
                     _buildDetailRow('👤 Créée par', mission.creePar),
                     _buildDetailRow(
@@ -700,7 +714,90 @@ ElevatedButton.icon(
                                 .toList(),
                       ),
                     ],
-                   ] ],
+                    ...[
+                      const SizedBox(height: 20),
+
+                      if (mission.statut == StatutMission.TERMINEE) ...[
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Rapport PDF',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF2A5298),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            final rapportProvider =
+                                context.read<RapportProvider>();
+
+                            await rapportProvider.loadRapport(
+                              mission.missionId,
+                            );
+
+                            if (!context.mounted) return;
+
+                            final rapport = rapportProvider.rapport;
+                            if (rapport != null) {
+                              await generateMissionRapportPdf(rapport);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    '📄 Rapport PDF généré avec succès',
+                                  ),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '❌ Échec de génération : ${rapportProvider.error ?? "rapport non disponible"}',
+                                  ),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(
+                            Icons.picture_as_pdf,
+                            color: Colors.white,
+                          ),
+                          label: const Text("Générer le rapport PDF"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color.fromARGB(255, 98, 183, 248),
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 48),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 1,
+                          ),
+                        ),
+                      ],
+                    ],
+                    const SizedBox(height: 24),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFFE0E5EC),
+                          foregroundColor: Color(0xFF2A5298),
+                          minimumSize: const Size(150, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: const Text(
+                          'Fermer',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

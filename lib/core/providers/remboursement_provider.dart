@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:testfront/core/models/RemboursementDTO.dart';
 import 'package:testfront/core/models/StatutRemboursement.dart';
@@ -49,6 +50,7 @@ class RemboursementProvider extends ChangeNotifier {
 
       if (index != -1) {
         _remboursements[index] = nouvelleDemande;
+        await loadMesRemboursements();
       } else {
         _remboursements.add(nouvelleDemande);
       }
@@ -108,5 +110,9 @@ class RemboursementProvider extends ChangeNotifier {
       print("🛑 Exception lors du changement de statut : $e");
       return false;
     }
+  }
+
+  RemboursementDTO? getRemboursementByMission(int missionId) {
+    return remboursements.firstWhereOrNull((r) => r.missionId == missionId);
   }
 }

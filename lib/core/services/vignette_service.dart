@@ -224,4 +224,5 @@ class VignetteService {
       return _handleError(e);
     }
   }
+  
 }

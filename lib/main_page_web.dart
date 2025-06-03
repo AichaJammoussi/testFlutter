@@ -170,11 +170,13 @@ import 'package:flutter/material.dart';
 import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:provider/provider.dart';
 import 'package:testfront/core/providers/UserProvider.dart';
+import 'package:testfront/core/providers/mission_provider.dart';
 import 'package:testfront/core/providers/notification_provider.dart';
 import 'package:testfront/core/services/auth_service.dart';
 
 // Importer tes écrans ici
 import 'package:testfront/features/auth/login_screen.dart';
+import 'package:testfront/features/home/home_Admin.dart';
 import 'package:testfront/features/home/home_screen.dart';
 import 'package:testfront/features/home/notificationBadge.dart';
 import 'package:testfront/features/home/notification.dart';
@@ -194,7 +196,7 @@ import 'package:testfront/features/vehicule/vehiculeScreenEmploye.dart';
 const Color primaryColor = Color(0xFF2A5298);
 
 class WebMainPage extends StatefulWidget {
-  final String userRole; 
+  final String userRole;
 
   const WebMainPage({super.key, required this.userRole});
   @override
@@ -208,6 +210,8 @@ class _WebMainPageState extends State<WebMainPage> {
 
   @override
   void initState() {
+        context.read<MissionProvider>().loadMissions();
+
     super.initState();
     sideMenu.addListener((index) {
       pageController.jumpToPage(index);
@@ -216,6 +220,8 @@ class _WebMainPageState extends State<WebMainPage> {
         listen: false,
       );
       notificationProvider.loadNotifications();
+          context.read<MissionProvider>().loadMissions();
+
     });
   }
 
@@ -228,9 +234,7 @@ class _WebMainPageState extends State<WebMainPage> {
       _buildItem('Utilisateurs', Icons.person, 3),
       _buildItem('Véhicules', Icons.directions_car, 4),
       _buildItem('Missions', Icons.task_rounded, 5),
-      _buildItem('Rapports', Icons.description, 6),
-      _buildItem('Remboursements', Icons.attach_money, 7),
-            _buildItem('Roles', Icons.supervised_user_circle_outlined,8),
+      _buildItem('Remboursements', Icons.attach_money, 6),
 
       _buildItem('Déconnexion', Icons.exit_to_app, -1),
     ];
@@ -244,16 +248,16 @@ class _WebMainPageState extends State<WebMainPage> {
       _buildItem('Utilisateurs', Icons.supervised_user_circle_outlined, 2),
       _buildItem('Véhicules', Icons.directions_car, 3),
       _buildItem('Missions', Icons.task_rounded, 4),
-      _buildItem('Rapports', Icons.description, 6),
       _buildItem('Remboursements', Icons.attach_money, 5),
       _buildItem('Déconnexion', Icons.exit_to_app, -1),
     ];
   }
+
   List<SideMenuItem> getNotUserMenu() {
     return [
       _buildItem('Accueil', Icons.home, 0),
       _buildItem('Profile', Icons.account_circle, 1),
-     
+
       _buildItem('Déconnexion', Icons.exit_to_app, -1),
     ];
   }
@@ -284,15 +288,15 @@ class _WebMainPageState extends State<WebMainPage> {
   Widget buildSideMenu(bool showFullMenu) {
     return SideMenu(
       controller: sideMenu,
-items: () {
-  if (widget.userRole == 'admin') {
-    return getAdminMenu();
-  } else if (widget.userRole != 'admin') {
-    return getUserMenu();
-  } else {
-    return getNotUserMenu();
-  }
-}(),
+      items: () {
+        if (widget.userRole == 'admin') {
+          return getAdminMenu();
+        } else if (widget.userRole != 'admin') {
+          return getUserMenu();
+        } else {
+          return getNotUserMenu();
+        }
+      }(),
       style: SideMenuStyle(
         openSideMenuWidth: 250,
         compactSideMenuWidth: 60,
@@ -339,39 +343,34 @@ items: () {
               );
             },
           ),
-      IconButton(
-                                      icon: const Icon(
-                                        Icons.calendar_today,
-                                        color: Colors.white,
-                                      ),
-                                      tooltip: 'Calendrier',
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) {
-                                              final user = UserProvider().user;
-                                              final roles =
-                                                  user?.roles ??
-                                                  []; // Fournit une liste vide si roles est null
-                                              return MissionCalendarScreen(
-                                              );
-                                            },
-                                          ),
-                                        );
-                                      },
-                      ),
-                     
-IconButton(
-                                      icon: const Icon(
-                                        Icons.map,
-                                        color: Colors.white,
-                                      ),
-                                      tooltip: 'map',
-                                      onPressed: () {
-                                       Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => MapPage()),
-    );})
+          IconButton(
+            icon: const Icon(Icons.calendar_today, color: Colors.white),
+            tooltip: 'Calendrier',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) {
+                    final user = UserProvider().user;
+                    final roles =
+                        user?.roles ??
+                        []; // Fournit une liste vide si roles est null
+                    return MissionCalendarScreen();
+                  },
+                ),
+              );
+            },
+          ),
+
+          IconButton(
+            icon: const Icon(Icons.map, color: Colors.white),
+            tooltip: 'map',
+            onPressed: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (context) => MapPage()));
+            },
+          ),
         ],
       ),
       body: Row(
@@ -381,42 +380,44 @@ IconButton(
             width: isMenuOpen ? 250 : 60,
             child: buildSideMenu(isMenuOpen),
           ),
-         Expanded(
-  child: PageView(
-    controller: pageController,
-    physics: const NeverScrollableScrollPhysics(),
-    children: () {
-      if (widget.userRole == 'admin') {
-        return [
-          HomeScreen(), // 0
-          const ProfileScreen(), // 1
-          const RoleListScreen(), // 2
-          EmployesPage(), // 3 Utilisateurs
-          VehiculeScreen(), // 4
-          const MissionsScreen(), // 5
-          const AdminRemboursementsScreen(), // 8 Remboursements
-        ];
-      } else if (widget.userRole != null && widget.userRole != 'admin') {
-        return [
-          HomeScreen(), // 0
-          const ProfileScreen(), // 1
-          EmployesPage(), // 2
-          VehiculeScreenEmploye(), // 3
-          MissionsScreenEmploye(), // 4
-          const MesRemboursementsScreen(), // 5
-        //  const Placeholder(), // 6 Rapports
-          //const Placeholder(), // 7 Remboursements
-        ];
-      } else {
-        return [
-          HomeScreen(), // 0
-          const ProfileScreen(), // 1
-        ];
-      }
-    }(),
-  ),
-),
+          Expanded(
+            child: PageView(
+              controller: pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: () {
+                final missions = context.watch<MissionProvider>().missions;
 
+                if (widget.userRole == 'admin') {
+                  return [
+                    MissionStatsScreen(missions: missions), // 0
+                    const ProfileScreen(), // 1
+                    const RoleListScreen(), // 2
+                    EmployesPage(), // 3 Utilisateurs
+                    VehiculeScreen(), // 4
+                    const MissionsScreen(), // 5
+                    const AdminRemboursementsScreen(), // 8 Remboursements
+                  ];
+                } else if (widget.userRole != null &&
+                    widget.userRole != 'admin') {
+                  return [
+                    HomeScreen(), // 0
+                    const ProfileScreen(), // 1
+                    EmployesPage(), // 2
+                    VehiculeScreenEmploye(), // 3
+                    MissionsScreenEmploye(), // 4
+                    const MesRemboursementsScreen(), // 5
+                    //  const Placeholder(), // 6 Rapports
+                    //const Placeholder(), // 7 Remboursements
+                  ];
+                } else {
+                  return [
+                    HomeScreen(), // 0
+                    const ProfileScreen(), // 1
+                  ];
+                }
+              }(),
+            ),
+          ),
         ],
       ),
     );

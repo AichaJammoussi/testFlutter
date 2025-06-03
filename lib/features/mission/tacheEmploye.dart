@@ -379,7 +379,6 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Entête ───────────────────────────────
                     Row(
                       children: [
                         Expanded(
@@ -489,14 +488,14 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
                                   icon: Icons.attach_money,
                                   title: 'Budget',
                                   value:
-                                      '${tache.budget.toStringAsFixed(2)} Dt',
+                                      '${tache.budget.toStringAsFixed(3)} Dt',
                                   isReadOnly: !isCurrentUserTask,
                                 ),
                                 _buildMetaDataCard(
                                   icon: Icons.money_off,
                                   title: 'Dépenses',
                                   value:
-                                      '${tache.depenses?.toStringAsFixed(2) ?? '0.00'} Dt',
+                                      '${tache.depenses?.toStringAsFixed(3) ?? '0.00'} Dt',
                                   isReadOnly: !isCurrentUserTask,
                                 ),
                               ],
@@ -508,7 +507,6 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
 
                     const SizedBox(height: 16),
 
-                    // ── Actions utilisateur ─────────────────
                     if (isCurrentUserTask) ...[
                       const Divider(),
                       const SizedBox(height: 8),
@@ -608,7 +606,6 @@ class _TachesParMissionScreenState extends State<TachesEmploye> {
                       const SizedBox(height: 16),
                     ],
 
-                    // Voir dépenses et fermer
                     Center(
                       child: Wrap(
                         spacing: 24,

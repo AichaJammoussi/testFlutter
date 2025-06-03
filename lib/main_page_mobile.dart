@@ -13,6 +13,7 @@ import 'package:testfront/features/mission/Calendrier.dart';
 import 'package:testfront/features/mission/MissionPageEmploye.dart';
 import 'package:testfront/features/mission/remboursement/adminRemboursement.dart';
 import 'package:testfront/features/mission/remboursement/remboursementEmploye.dart';
+import 'package:testfront/features/notePage.dart';
 import 'package:testfront/features/profile/profile_screen.dart';
 import 'package:testfront/features/role/roleScreen.dart';
 import 'package:testfront/features/role/userScreenEmploye.dart';
@@ -52,6 +53,7 @@ class _MainPageMobileState extends State<MainPageMobile> {
         VehiculeScreen(),
         const MissionsScreen(),
         AdminRemboursementsScreen(),
+        NotesApp(),
       ];
     } else if (widget.userRole != null && widget.userRole != 'admin') {
       return [
@@ -62,6 +64,7 @@ class _MainPageMobileState extends State<MainPageMobile> {
 
         const MissionsScreenEmploye(),
         const MesRemboursementsScreen(),
+        NotesApp(),
       ];
     } else {
       return[
@@ -81,7 +84,7 @@ class _MainPageMobileState extends State<MainPageMobile> {
         _buildDrawerItem(Icons.task_rounded, 'Mission', 4),
         _buildDrawerItem(Icons.attach_money, 'Remboursements', 5),
 
-        _buildDrawerItem(Icons.description, 'Rapports', 6),
+        _buildDrawerItem(Icons.description, 'Notes', 6),
         _buildDrawerItem(Icons.exit_to_app, 'Déconnexion', -1),
       ];
     } else if (widget.userRole != null && widget.userRole != 'admin') {
@@ -94,7 +97,7 @@ class _MainPageMobileState extends State<MainPageMobile> {
         _buildDrawerItem(Icons.task_rounded, 'Mission', 4),
         _buildDrawerItem(Icons.attach_money, 'Remboursements', 5),
 
-        _buildDrawerItem(Icons.description, 'Rapports', 6),
+        _buildDrawerItem(Icons.description, 'Notes', 6),
         _buildDrawerItem(Icons.exit_to_app, 'Déconnexion', -1),
       ];
     } else {
@@ -144,7 +147,6 @@ class _MainPageMobileState extends State<MainPageMobile> {
       Icons.task_rounded,
       Icons.attach_money,
       Icons.description,
-      Icons.attach_money,
     ];
 
     return List.generate(icons.length, (index) {
@@ -198,17 +200,16 @@ class _MainPageMobileState extends State<MainPageMobile> {
               // Fournit une liste vide si roles est null
             },
           ),
-                              
-IconButton(
-                                      icon: const Icon(
-                                        Icons.map,
-                                        color: Colors.white,
-                                      ),
-                                      tooltip: 'map',
-                                      onPressed: () {
-                                       Navigator.of(context).push(
-      MaterialPageRoute(builder: (context) => MapPage()),
-    );})
+
+          IconButton(
+            icon: const Icon(Icons.map, color: Colors.white),
+            tooltip: 'map',
+            onPressed: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (context) => MapPage()));
+            },
+          ),
         ],
       ),
       drawer: Drawer(
